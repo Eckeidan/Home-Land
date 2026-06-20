@@ -1,0 +1,625 @@
+openapi: 3.1.0
+info:
+  title: The Home Land Onboarding API
+  version: 0.1.0
+  description: >-
+    Contract for the Phase 1 onboarding walking skeleton. This contract is
+    implementation-ready but remains subject to prototype and threat-model review.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+tags:
+  - name: Authentication
+  - name: Onboarding
+  - name: Organizations
+  - name: Portfolio
+paths:
+  /auth/registrations:
+    post:
+      tags: [Authentication]
+      operationId: registerUser
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '202':
+          description: Registration accepted without unsafe account disclosure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationAccepted'
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/email-verifications:
+    post:
+      tags: [Authentication]
+      operationId: verifyEmail
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified and browser session established.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingSnapshot'
+        '400': { $ref: '#/components/responses/InvalidToken' }
+        '410': { $ref: '#/components/responses/ExpiredToken' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/email-verifications/resend:
+    post:
+      tags: [Authentication]
+      operationId: resendEmailVerification
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 320 }
+      responses:
+        '202':
+          description: Request accepted whether or not an eligible account exists.
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /onboarding:
+    get:
+      tags: [Onboarding]
+      operationId: getOnboardingSnapshot
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Current server-authoritative workflow snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingSnapshot'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /organizations:
+    post:
+      tags: [Organizations]
+      operationId: createOrganization
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Organization, owner membership, and onboarding progress created atomically.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationCreated'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/workspace:
+    patch:
+      tags: [Organizations]
+      operationId: configureWorkspace
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigureWorkspaceRequest'
+      responses:
+        '200':
+          description: Workspace settings updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSummary'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '412': { $ref: '#/components/responses/VersionMismatch' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/mfa/enrollments:
+    post:
+      tags: [Authentication]
+      operationId: beginMfaEnrollment
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '201':
+          description: A short-lived TOTP enrollment challenge.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MfaEnrollmentChallenge'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/RecentAuthenticationRequired' }
+  /auth/mfa/enrollments/{enrollmentId}/confirm:
+    post:
+      tags: [Authentication]
+      operationId: confirmMfaEnrollment
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: MFA factor confirmed. Recovery codes are returned once.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MfaEnrollmentConfirmed'
+        '400': { $ref: '#/components/responses/InvalidMfaChallenge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /organizations/{organizationId}/invitations:
+    post:
+      tags: [Organizations]
+      operationId: createOrganizationInvitation
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationRequest'
+      responses:
+        '202':
+          description: Invitation accepted for delivery.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationSummary'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/properties:
+    post:
+      tags: [Portfolio]
+      operationId: createFirstProperty
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePropertyRequest'
+      responses:
+        '201':
+          description: Property created in the authenticated organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertySummary'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/properties/{propertyId}/units:
+    post:
+      tags: [Portfolio]
+      operationId: createFirstUnit
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: propertyId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUnitRequest'
+      responses:
+        '201':
+          description: Unit created under a property in the same organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnitSummary'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/onboarding/readiness:
+    get:
+      tags: [Onboarding]
+      operationId: getOnboardingReadiness
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Server-evaluated readiness requirements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /organizations/{organizationId}/onboarding/activate:
+    post:
+      tags: [Onboarding]
+      operationId: activateWorkspace
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Workspace activated, or previous idempotent activation returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceActivated'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Readiness requirements are incomplete.
+          content:
+            application/problem+json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - type: object
+                    properties:
+                      code: { const: ONBOARDING_REQUIREMENTS_INCOMPLETE }
+                      readiness: { $ref: '#/components/schemas/Readiness' }
+        '412': { $ref: '#/components/responses/VersionMismatch' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-thl_session
+  parameters:
+    OrganizationId:
+      name: organizationId
+      in: path
+      required: true
+      description: Resource selector. Authorization still derives from the authenticated membership.
+      schema: { $ref: '#/components/schemas/Uuid' }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      schema: { type: string, minLength: 8, maxLength: 128 }
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: { type: string, minLength: 32, maxLength: 256 }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Quoted aggregate version, for example "4".
+      schema: { type: string, pattern: '^"[1-9][0-9]*"$' }
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+    RegisterUserRequest:
+      type: object
+      additionalProperties: false
+      required: [fullName, email, password, acceptedTermsVersion]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 160 }
+        email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, minLength: 12, maxLength: 128 }
+        acceptedTermsVersion: { type: string, minLength: 1, maxLength: 40 }
+    RegistrationAccepted:
+      type: object
+      additionalProperties: false
+      required: [status, nextAction]
+      properties:
+        status: { const: ACCEPTED }
+        nextAction: { const: CHECK_EMAIL }
+    VerifyEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string, minLength: 32, maxLength: 512 }
+    CreateOrganizationRequest:
+      type: object
+      additionalProperties: false
+      required: [legalName, displayName, organizationType, primaryStateCode, approximateUnitRange]
+      properties:
+        legalName: { type: string, minLength: 2, maxLength: 200 }
+        displayName: { type: string, minLength: 2, maxLength: 120 }
+        organizationType:
+          enum: [INDIVIDUAL_LANDLORD, PROPERTY_MANAGEMENT_COMPANY, REAL_ESTATE_AGENCY, INVESTMENT_GROUP]
+        primaryStateCode: { type: string, pattern: '^[A-Z]{2}$' }
+        approximateUnitRange:
+          enum: [ONE_TO_NINE, TEN_TO_NINETY_NINE, ONE_HUNDRED_TO_FIVE_HUNDRED, FIVE_HUNDRED_TO_FIVE_THOUSAND, OVER_FIVE_THOUSAND]
+    ConfigureWorkspaceRequest:
+      type: object
+      additionalProperties: false
+      required: [slug, timeZone, locale]
+      properties:
+        slug: { type: string, pattern: '^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])?$' }
+        timeZone: { type: string, minLength: 1, maxLength: 64 }
+        locale: { enum: [en-US] }
+    CreateInvitationRequest:
+      type: object
+      additionalProperties: false
+      required: [email, role]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        role: { enum: [PROPERTY_MANAGER, ACCOUNTANT, MAINTENANCE_MANAGER] }
+    StructuredUsAddress:
+      type: object
+      additionalProperties: false
+      required: [line1, city, stateCode, postalCode, countryCode]
+      properties:
+        line1: { type: string, minLength: 1, maxLength: 160 }
+        line2: { type: [string, 'null'], maxLength: 160 }
+        city: { type: string, minLength: 1, maxLength: 100 }
+        stateCode: { type: string, pattern: '^[A-Z]{2}$' }
+        postalCode: { type: string, pattern: '^\d{5}(?:-\d{4})?$' }
+        countryCode: { const: US }
+    CreatePropertyRequest:
+      type: object
+      additionalProperties: false
+      required: [name, propertyType, address, timeZone]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        propertyType: { enum: [SINGLE_FAMILY, MULTIFAMILY, APARTMENT_COMPLEX] }
+        address: { $ref: '#/components/schemas/StructuredUsAddress' }
+        timeZone: { type: string, minLength: 1, maxLength: 64 }
+    CreateUnitRequest:
+      type: object
+      additionalProperties: false
+      required: [unitCode]
+      properties:
+        buildingId: { oneOf: [{ $ref: '#/components/schemas/Uuid' }, { type: 'null' }] }
+        unitCode: { type: string, minLength: 1, maxLength: 80 }
+    OnboardingSnapshot:
+      type: object
+      additionalProperties: false
+      required: [state, nextAction, version]
+      properties:
+        organizationId: { oneOf: [{ $ref: '#/components/schemas/Uuid' }, { type: 'null' }] }
+        state:
+          enum: [REGISTERED, EMAIL_VERIFICATION_PENDING, EMAIL_VERIFIED, ORGANIZATION_CREATED, WORKSPACE_CONFIGURED, MFA_REQUIRED, PORTFOLIO_REQUIRED, READY_FOR_REVIEW, ACTIVE, ABANDONED, EXPIRED, SUSPENDED]
+        nextAction: { type: string, maxLength: 80 }
+        version: { type: integer, minimum: 1 }
+    OrganizationCreated:
+      type: object
+      additionalProperties: false
+      required: [organization, membershipRole, onboarding]
+      properties:
+        organization: { $ref: '#/components/schemas/OrganizationSummary' }
+        membershipRole: { const: OWNER }
+        onboarding: { $ref: '#/components/schemas/OnboardingSnapshot' }
+    OrganizationSummary:
+      type: object
+      additionalProperties: false
+      required: [id, displayName, slug, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        displayName: { type: string }
+        slug: { type: string }
+        status: { enum: [ONBOARDING, ACTIVE, SUSPENDED, ARCHIVED] }
+        version: { type: integer, minimum: 1 }
+    MfaEnrollmentChallenge:
+      type: object
+      additionalProperties: false
+      required: [enrollmentId, provisioningUri, manualSecret, expiresAt]
+      properties:
+        enrollmentId: { $ref: '#/components/schemas/Uuid' }
+        provisioningUri: { type: string, format: uri }
+        manualSecret: { type: string, minLength: 16, maxLength: 128 }
+        expiresAt: { type: string, format: date-time }
+    MfaEnrollmentConfirmed:
+      type: object
+      additionalProperties: false
+      required: [status, recoveryCodes]
+      properties:
+        status: { const: ENABLED }
+        recoveryCodes:
+          type: array
+          minItems: 8
+          maxItems: 12
+          items: { type: string, minLength: 8, maxLength: 32 }
+    InvitationSummary:
+      type: object
+      additionalProperties: false
+      required: [id, email, role, status, expiresAt]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        email: { type: string, format: email }
+        role: { type: string }
+        status: { const: PENDING }
+        expiresAt: { type: string, format: date-time }
+    PropertySummary:
+      type: object
+      additionalProperties: false
+      required: [id, organizationId, name, propertyType, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        organizationId: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        propertyType: { type: string }
+        status: { const: ACTIVE }
+        version: { type: integer, minimum: 1 }
+    UnitSummary:
+      type: object
+      additionalProperties: false
+      required: [id, organizationId, propertyId, unitCode, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        organizationId: { $ref: '#/components/schemas/Uuid' }
+        propertyId: { $ref: '#/components/schemas/Uuid' }
+        unitCode: { type: string }
+        status: { const: AVAILABLE }
+        version: { type: integer, minimum: 1 }
+    ReadinessRequirement:
+      type: object
+      additionalProperties: false
+      required: [code, complete]
+      properties:
+        code:
+          enum: [EMAIL_VERIFIED, ORGANIZATION_VALID, OWNER_MFA_ENABLED, FIRST_PROPERTY_CREATED, FIRST_UNIT_CREATED, TERMS_ACCEPTED]
+        complete: { type: boolean }
+        actionPath: { type: [string, 'null'] }
+    Readiness:
+      type: object
+      additionalProperties: false
+      required: [ready, requirements, evaluatedAt, version]
+      properties:
+        ready: { type: boolean }
+        requirements:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: { $ref: '#/components/schemas/ReadinessRequirement' }
+        evaluatedAt: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+    WorkspaceActivated:
+      type: object
+      additionalProperties: false
+      required: [organizationId, status, activatedAt, nextPath]
+      properties:
+        organizationId: { $ref: '#/components/schemas/Uuid' }
+        status: { const: ACTIVE }
+        activatedAt: { type: string, format: date-time }
+        nextPath: { const: /app/inbox }
+    Problem:
+      type: object
+      additionalProperties: true
+      required: [type, title, status, code, correlationId]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { type: string, pattern: '^[A-Z0-9_]+$' }
+        detail: { type: string }
+        correlationId: { type: string }
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code]
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }
+  responses:
+    Unauthenticated:
+      description: Authentication required.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Authenticated actor is not authorized in this organization context.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Resource not found in the authorized organization context.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationError:
+      description: Request failed semantic validation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Current state conflicts with the requested command.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    VersionMismatch:
+      description: Aggregate version does not match If-Match.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InvalidToken:
+      description: Verification token is invalid or already consumed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ExpiredToken:
+      description: Verification token has expired.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InvalidMfaChallenge:
+      description: MFA challenge or code is invalid.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RecentAuthenticationRequired:
+      description: The operation requires recent primary authentication.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Request rate limit exceeded.
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

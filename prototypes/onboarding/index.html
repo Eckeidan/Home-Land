@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="The Home Land secure onboarding experience prototype"
+    />
+    <title>The Home Land — Workspace Setup</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <main class="app-frame" id="main-content">
+      <aside class="setup-rail" aria-label="Onboarding progress">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </span>
+          <span class="brand-name">The Home Land</span>
+        </div>
+
+        <div class="rail-intro">
+          <p class="eyebrow">Workspace launch</p>
+          <h1>Build your operating foundation.</h1>
+          <p>Secure, guided setup for your property portfolio.</p>
+        </div>
+
+        <nav class="step-navigation" aria-label="Setup steps">
+          <ol>
+            <li>
+              <button class="step-button is-complete" type="button" data-step-target="0">
+                <span class="step-indicator" aria-hidden="true">✓</span>
+                <span><strong>Account</strong><small>Identity verified</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button is-active" type="button" data-step-target="1" aria-current="step">
+                <span class="step-indicator" aria-hidden="true">02</span>
+                <span><strong>Organization</strong><small>Company profile</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="2">
+                <span class="step-indicator" aria-hidden="true">03</span>
+                <span><strong>Workspace</strong><small>Regional settings</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="3">
+                <span class="step-indicator" aria-hidden="true">04</span>
+                <span><strong>Security</strong><small>Protect your account</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="4">
+                <span class="step-indicator" aria-hidden="true">05</span>
+                <span><strong>Team</strong><small>Invite collaborators</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="5">
+                <span class="step-indicator" aria-hidden="true">06</span>
+                <span><strong>Property</strong><small>First portfolio asset</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="6">
+                <span class="step-indicator" aria-hidden="true">07</span>
+                <span><strong>First unit</strong><small>Operational structure</small></span>
+              </button>
+            </li>
+            <li>
+              <button class="step-button" type="button" data-step-target="7">
+                <span class="step-indicator" aria-hidden="true">08</span>
+                <span><strong>Review</strong><small>Activate workspace</small></span>
+              </button>
+            </li>
+          </ol>
+        </nav>
+
+        <div class="rail-support">
+          <span class="status-dot" aria-hidden="true"></span>
+          <div><strong>Your progress is private</strong><small>Encrypted and saved automatically</small></div>
+        </div>
+      </aside>
+
+      <section class="workspace-panel">
+        <header class="workspace-header">
+          <div>
+            <p class="mobile-brand">THE HOME LAND</p>
+            <p class="progress-copy"><span id="progress-label">Step 2 of 8</span> · <span id="progress-percent">25%</span> complete</p>
+          </div>
+          <div class="header-actions">
+            <button class="text-button" id="save-exit" type="button">Save & exit</button>
+            <button class="avatar-button" type="button" aria-label="Open account menu">CM</button>
+          </div>
+        </header>
+
+        <div class="progress-track" aria-hidden="true">
+          <span id="progress-bar"></span>
+        </div>
+
+        <div class="content-grid">
+          <form class="setup-card" id="onboarding-form" novalidate>
+            <section class="step-panel" data-step="0" hidden>
+              <div class="completion-orb" aria-hidden="true">✓</div>
+              <p class="eyebrow">Identity confirmed</p>
+              <h2>Your account is ready.</h2>
+              <p class="lead">Your email has been verified. We can now create the organization that will own your property data.</p>
+              <div class="verified-identity">
+                <span class="avatar-large">CM</span>
+                <span><strong>Chris Morgan</strong><small>owner@example.com</small></span>
+                <span class="verified-pill">Verified</span>
+              </div>
+            </section>
+
+            <section class="step-panel" data-step="1">
+              <p class="eyebrow">Organization profile</p>
+              <h2>Tell us about your operation.</h2>
+              <p class="lead">This creates the secure boundary for your team, properties, tenants, and financial records.</p>
+
+              <div class="field-grid two-columns">
+                <label class="field">
+                  <span>Legal business name</span>
+                  <input name="legalName" type="text" value="Eckeidan Property Group LLC" autocomplete="organization" required />
+                  <small>Use the name shown on legal documents.</small>
+                </label>
+                <label class="field">
+                  <span>Display name</span>
+                  <input name="displayName" type="text" value="Eckeidan Living" required />
+                  <small>Visible to your team and tenants.</small>
+                </label>
+                <label class="field">
+                  <span>Organization type</span>
+                  <select name="organizationType" required>
+                    <option>Property management company</option>
+                    <option>Individual landlord</option>
+                    <option>Real estate agency</option>
+                    <option>Investment group</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Primary operating state</span>
+                  <select name="stateCode" required>
+                    <option value="">Select a state</option>
+                    <option selected>Texas</option>
+                    <option>Florida</option>
+                    <option>New York</option>
+                    <option>California</option>
+                    <option>Ohio</option>
+                  </select>
+                </label>
+              </div>
+
+              <fieldset class="choice-fieldset">
+                <legend>How many units do you currently manage?</legend>
+                <div class="choice-grid">
+                  <label class="choice-card"><input type="radio" name="unitRange" /><span><strong>1–9</strong><small>Independent</small></span></label>
+                  <label class="choice-card"><input type="radio" name="unitRange" /><span><strong>10–99</strong><small>Growing</small></span></label>
+                  <label class="choice-card is-selected"><input type="radio" name="unitRange" checked /><span><strong>100–500</strong><small>Professional</small></span></label>
+                  <label class="choice-card"><input type="radio" name="unitRange" /><span><strong>500+</strong><small>Enterprise</small></span></label>
+                </div>
+              </fieldset>
+            </section>
+
+            <section class="step-panel" data-step="2" hidden>
+              <p class="eyebrow">Workspace settings</p>
+              <h2>Shape your operating environment.</h2>
+              <p class="lead">Regional settings control time-sensitive workflows, reporting, and your team's shared experience.</p>
+              <div class="workspace-preview">
+                <span class="preview-mark">EL</span>
+                <div><strong>Eckeidan Living</strong><small>eckeidan-living.thehomeland.app</small></div>
+                <span class="preview-badge">Private workspace</span>
+              </div>
+              <div class="field-grid two-columns">
+                <label class="field field-wide">
+                  <span>Workspace address</span>
+                  <div class="input-prefix"><span>thehomeland.app/</span><input name="slug" value="eckeidan-living" required /></div>
+                </label>
+                <label class="field"><span>Time zone</span><select name="timezone"><option selected>America/Chicago (CT)</option><option>America/New_York (ET)</option><option>America/Denver (MT)</option><option>America/Los_Angeles (PT)</option></select></label>
+                <label class="field"><span>Language</span><select><option selected>English (United States)</option><option disabled>French — coming next</option></select></label>
+              </div>
+            </section>
+
+            <section class="step-panel" data-step="3" hidden>
+              <p class="eyebrow">Account protection</p>
+              <h2>Secure privileged access.</h2>
+              <p class="lead">Multi-factor authentication protects property, lease, and financial data even if a password is compromised.</p>
+              <div class="security-layout">
+                <div class="qr-placeholder" aria-label="Example QR code placeholder">
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="security-copy">
+                  <strong>1. Scan with an authenticator app</strong>
+                  <p>Use 1Password, Google Authenticator, Microsoft Authenticator, or another TOTP app.</p>
+                  <button class="secondary-button" type="button">Use manual setup key</button>
+                </div>
+              </div>
+              <label class="field code-field"><span>2. Enter the six-digit code</span><input inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000 000" /></label>
+              <div class="security-note"><span aria-hidden="true">◆</span><p><strong>Recovery codes appear once.</strong> Store them in a secure password manager after confirmation.</p></div>
+            </section>
+
+            <section class="step-panel" data-step="4" hidden>
+              <p class="eyebrow">Team access</p>
+              <h2>Bring in the right people.</h2>
+              <p class="lead">Invitations are optional now. Every person receives only the access required for their role.</p>
+              <div class="invite-row">
+                <label class="field"><span>Work email</span><input type="email" placeholder="manager@company.com" /></label>
+                <label class="field"><span>Role</span><select><option>Property manager</option><option>Accountant</option><option>Maintenance manager</option></select></label>
+                <button class="secondary-button invite-button" type="button">Add invite</button>
+              </div>
+              <div class="empty-invites"><span aria-hidden="true">＋</span><strong>No invitations yet</strong><p>You can skip this step and invite your team later.</p></div>
+            </section>
+
+            <section class="step-panel" data-step="5" hidden>
+              <p class="eyebrow">First portfolio asset</p>
+              <h2>Add the property you manage most.</h2>
+              <p class="lead">Starting with one real property lets The Home Land configure useful workflows immediately.</p>
+              <div class="field-grid two-columns">
+                <label class="field field-wide"><span>Property name</span><input value="Lumina Heights" required /></label>
+                <label class="field"><span>Property type</span><select><option selected>Apartment complex</option><option>Multifamily</option><option>Single-family</option></select></label>
+                <label class="field"><span>Street address</span><input value="2140 Riverside Drive" autocomplete="address-line1" /></label>
+                <label class="field"><span>City</span><input value="Austin" autocomplete="address-level2" /></label>
+                <label class="field"><span>State</span><select><option selected>Texas</option></select></label>
+                <label class="field"><span>ZIP code</span><input value="78704" inputmode="numeric" autocomplete="postal-code" /></label>
+              </div>
+              <div class="map-preview" aria-label="Stylized property location preview">
+                <div class="map-lines" aria-hidden="true"></div>
+                <span class="map-pin" aria-hidden="true"><i></i></span>
+                <div><strong>Austin, Texas</strong><small>America/Chicago · Residential</small></div>
+              </div>
+            </section>
+
+            <section class="step-panel" data-step="6" hidden>
+              <p class="eyebrow">Operational structure</p>
+              <h2>Create your first unit.</h2>
+              <p class="lead">Units become the connection point for leases, occupancy, rent, maintenance, and tenant communication.</p>
+              <div class="property-context"><span class="building-icon" aria-hidden="true">▦</span><div><small>Property</small><strong>Lumina Heights</strong><p>2140 Riverside Drive · Austin, TX</p></div><span class="context-status">Ready</span></div>
+              <div class="field-grid two-columns">
+                <label class="field"><span>Unit number or name</span><input value="A-101" required /></label>
+                <label class="field"><span>Initial status</span><select><option selected>Available</option><option>Offline</option></select></label>
+                <label class="field"><span>Bedrooms</span><select><option>Studio</option><option selected>1 bedroom</option><option>2 bedrooms</option><option>3+ bedrooms</option></select></label>
+                <label class="field"><span>Bathrooms</span><select><option selected>1 bathroom</option><option>1.5 bathrooms</option><option>2 bathrooms</option></select></label>
+              </div>
+            </section>
+
+            <section class="step-panel review-panel" data-step="7" hidden>
+              <div class="completion-orb is-ready" aria-hidden="true">✓</div>
+              <p class="eyebrow">Ready for launch</p>
+              <h2>Your workspace has a strong foundation.</h2>
+              <p class="lead">Every required control has been evaluated from authoritative workspace data.</p>
+              <div class="readiness-list">
+                <div><span>✓</span><p><strong>Email verified</strong><small>owner@example.com</small></p></div>
+                <div><span>✓</span><p><strong>Organization valid</strong><small>Eckeidan Living · Texas</small></p></div>
+                <div><span>✓</span><p><strong>Owner MFA enabled</strong><small>Authenticator protected</small></p></div>
+                <div><span>✓</span><p><strong>First property created</strong><small>Lumina Heights</small></p></div>
+                <div><span>✓</span><p><strong>First unit created</strong><small>A-101 · Available</small></p></div>
+                <div><span>✓</span><p><strong>Terms accepted</strong><small>Current version recorded</small></p></div>
+              </div>
+              <div class="launch-note"><span aria-hidden="true">↗</span><p><strong>What happens next?</strong><br />You’ll enter your operational inbox with guided actions for leases, rent, and maintenance.</p></div>
+            </section>
+
+            <footer class="form-actions">
+              <button class="back-button" id="back-button" type="button"><span aria-hidden="true">←</span> Back</button>
+              <p class="autosave-state" id="autosave-state"><span aria-hidden="true">✓</span> All changes saved</p>
+              <button class="primary-button" id="next-button" type="submit">Continue <span aria-hidden="true">→</span></button>
+            </footer>
+          </form>
+
+          <aside class="insight-panel" aria-label="Setup guidance">
+            <div class="insight-glow" aria-hidden="true"></div>
+            <div class="insight-icon" aria-hidden="true">✦</div>
+            <p class="eyebrow">Why this matters</p>
+            <h3 id="insight-title">Your organization is the security boundary.</h3>
+            <p id="insight-copy">Every property, lease, payment, document, and workflow is isolated inside this workspace.</p>
+            <div class="insight-metric">
+              <span id="insight-value">100%</span>
+              <p><strong id="insight-label">tenant scoped</strong><small id="insight-detail">No record exists outside an organization context.</small></p>
+            </div>
+            <div class="trust-line"><span aria-hidden="true">◈</span><p>Built for secure US property operations</p></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+      <span aria-hidden="true">✓</span>
+      <div><strong>Progress saved</strong><small>You can resume securely from this device.</small></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

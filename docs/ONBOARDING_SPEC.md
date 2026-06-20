@@ -6,6 +6,8 @@ Owner: Product and Identity & Organization domain
 
 Release: Phase 1 walking skeleton
 
+Validated visual direction: `prototypes/onboarding/`
+
 ## 1. Purpose
 
 Onboarding converts a verified person into the owner of a secure, usable

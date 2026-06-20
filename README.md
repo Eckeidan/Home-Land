@@ -14,8 +14,10 @@ started yet by design.
 2. [Product brief](docs/PRODUCT_BRIEF.md)
 3. [MVP scope](docs/MVP_SCOPE.md)
 4. [Onboarding MVP specification](docs/ONBOARDING_SPEC.md)
-5. [Responsible delivery roadmap](docs/DELIVERY_ROADMAP.md)
-6. [Definition of ready](docs/DEFINITION_OF_READY.md)
+5. [Onboarding data model](docs/ONBOARDING_DATA_MODEL.md)
+6. [Onboarding visual prototype](prototypes/onboarding/README.md)
+7. [Responsible delivery roadmap](docs/DELIVERY_ROADMAP.md)
+8. [Definition of ready](docs/DEFINITION_OF_READY.md)
 
 The existing numbered documents capture long-term product research. Canonical
 MVP decisions live under `docs/` and in `.codex/project-rules.md`.
