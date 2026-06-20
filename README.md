@@ -44,6 +44,6 @@ Local services:
 - Web: `http://localhost:3000`
 - API health: `http://localhost:4000/api/v1/health`
 - Web health: `http://localhost:3000/api/health`
-- PostgreSQL: `localhost:5432`
+- PostgreSQL: `localhost:5433` (container port `5432`)
 
 Run all quality gates with `npm run check`.
