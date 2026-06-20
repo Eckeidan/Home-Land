@@ -30,6 +30,8 @@ register -> create organization -> invite manager -> create property
 Include authentication, authorization, tenant isolation, audit, observability,
 migration, deployment, backups, and E2E tests.
 
+The authoritative workflow contract is `docs/ONBOARDING_SPEC.md`.
+
 Exit: slice runs in a non-production environment and tenant-isolation tests pass.
 
 ## Phase 2 — Portfolio and leasing

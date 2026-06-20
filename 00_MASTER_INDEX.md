@@ -16,6 +16,7 @@ current delivery scope unless promoted into a canonical document.
 
 - [Product brief](docs/PRODUCT_BRIEF.md)
 - [MVP scope](docs/MVP_SCOPE.md)
+- [Onboarding specification](docs/ONBOARDING_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](docs/SECURITY.md)
 - [Delivery roadmap](docs/DELIVERY_ROADMAP.md)

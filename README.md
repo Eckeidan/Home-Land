@@ -13,8 +13,9 @@ started yet by design.
 1. [Master index](00_MASTER_INDEX.md)
 2. [Product brief](docs/PRODUCT_BRIEF.md)
 3. [MVP scope](docs/MVP_SCOPE.md)
-4. [Responsible delivery roadmap](docs/DELIVERY_ROADMAP.md)
-5. [Definition of ready](docs/DEFINITION_OF_READY.md)
+4. [Onboarding MVP specification](docs/ONBOARDING_SPEC.md)
+5. [Responsible delivery roadmap](docs/DELIVERY_ROADMAP.md)
+6. [Definition of ready](docs/DEFINITION_OF_READY.md)
 
 The existing numbered documents capture long-term product research. Canonical
 MVP decisions live under `docs/` and in `.codex/project-rules.md`.

@@ -14,9 +14,10 @@ Before changing code or schemas, read:
 2. `.codex/project-rules.md`
 3. `docs/PRODUCT_BRIEF.md`
 4. `docs/MVP_SCOPE.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/SECURITY.md`
-7. The relevant domain document and ADRs
+5. `docs/ONBOARDING_SPEC.md` when working on identity, organizations, or setup
+6. `docs/ARCHITECTURE.md`
+7. `docs/SECURITY.md`
+8. The relevant domain document and ADRs
 
 If an exploratory Book conflicts with a canonical document under `docs/`, the
 canonical document wins. Record intentional exceptions in an ADR.
