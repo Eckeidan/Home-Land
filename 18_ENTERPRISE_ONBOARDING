@@ -1,0 +1,248 @@
+Très bonne question.
+
+Je te conseille de ne pas le mettre dans un seul fichier. Ce que nous venons de définir est suffisamment important pour devenir une partie entière de l’architecture.
+
+Voici comment je l’organiserais.
+
+⸻
+
+Option 1 (Recommandée) ⭐⭐⭐⭐⭐
+
+Créer un nouveau livre dédié :
+
+18_ENTERPRISE_ONBOARDING
+│
+├── 18.00_ONBOARDING_INDEX.md
+├── 18.01_ONBOARDING_ARCHITECTURE.md
+├── 18.02_REGISTRATION_FLOW.md
+├── 18.03_WORKSPACE_PROVISIONING.md
+├── 18.04_ORGANIZATION_SETUP.md
+├── 18.05_BRANDING_SETUP.md
+├── 18.06_FINANCIAL_SETUP.md
+├── 18.07_PAYMENT_SETUP.md
+├── 18.08_PROPERTY_IMPORT.md
+├── 18.09_UNIT_IMPORT.md
+├── 18.10_TENANT_IMPORT.md
+├── 18.11_VENDOR_IMPORT.md
+├── 18.12_DOCUMENT_IMPORT.md
+├── 18.13_AI_CONFIGURATION.md
+├── 18.14_AUTOMATION_SETUP.md
+├── 18.15_DASHBOARD_PERSONALIZATION.md
+├── 18.16_GO_LIVE_CHECKLIST.md
+├── 18.17_ONBOARDING_ANALYTICS.md
+├── 18.18_ONBOARDING_SCORE.md
+└── 18.19_ONBOARDING_FUTURE.md
+
+C’est la solution que je recommande.
+
+⸻
+
+Ce qu’il faut aussi modifier
+
+1. 00_MASTER_INDEX.md
+
+Ajouter :
+
+BOOK 18 — ENTERPRISE ONBOARDING
+
+⸻
+
+2. 01_PROJECT_CONTEXT.md
+
+Dans Mandatory Modules, remplacer :
+
+Onboarding Setup
+
+par :
+
+Enterprise Onboarding Engine
+
+Parce que ce n’est plus un simple module.
+
+⸻
+
+3. 08_SYSTEM_ENGINES.md
+
+Ajouter :
+
+Enterprise Onboarding Engine
+
+avec les autres moteurs.
+
+Exemple :
+
+Authorization Engine
+Workflow Engine
+Rules Engine
+Audit Engine
+Notification Engine
+Automation Engine
+Enterprise Onboarding Engine
+AI Engine
+Billing Engine
+
+Puis ajouter une nouvelle section :
+
+22. Enterprise Onboarding Engine
+Responsibilities
+• Registration
+• Workspace Creation
+• Subscription
+• Organization Setup
+• Branding
+• Financial Configuration
+• Imports
+• User Invitations
+• AI Configuration
+• Go Live Validation
+
+⸻
+
+4. 10_DOMAIN_EVENTS.md
+
+Ajouter les événements :
+
+OrganizationRegistered
+WorkspaceProvisioned
+OnboardingStarted
+OnboardingStepCompleted
+BrandingConfigured
+StripeConnected
+BankConfigured
+PropertyImported
+TenantImported
+VendorImported
+AIConfigured
+WorkspaceActivated
+GoLiveCompleted
+
+⸻
+
+5. 09_STATE_MACHINES.md
+
+Ajouter une State Machine dédiée :
+
+Registration
+↓
+Email Verified
+↓
+Subscription Selected
+↓
+Payment Completed
+↓
+Workspace Provisioned
+↓
+Onboarding Started
+↓
+Configuration Complete
+↓
+Go Live Ready
+↓
+Active
+
+⸻
+
+Une autre amélioration
+
+Je créerais un Module Zéro.
+
+Avant même Authentication.
+
+00 Platform
+Landing Page
+Pricing
+Registration
+Authentication
+Verification
+Forgot Password
+MFA
+Invitation
+Enterprise Onboarding
+Workspace Creation
+
+Ensuite seulement :
+
+01 Dashboard
+02 Property
+03 Unit
+04 Tenant
+05 Lease
+...
+
+Ainsi, Codex comprendra que tout le cycle de vie d’un client commence avant le Dashboard.
+
+⸻
+
+Une dernière idée
+
+Je pense que nous pouvons faire encore mieux que toutes les plateformes existantes.
+
+Créer un document appelé :
+
+00_USER_JOURNEYS.md
+
+Dans ce document, nous décrirons le parcours complet de chaque type d’utilisateur, du premier clic jusqu’à son utilisation quotidienne.
+
+Par exemple :
+
+Visitor
+↓
+Registration
+↓
+Email Verification
+↓
+Subscription
+↓
+Payment
+↓
+Workspace Creation
+↓
+AI Onboarding
+↓
+Property Import
+↓
+Dashboard
+↓
+Daily Operations
+
+Puis :
+
+Tenant
+Invitation
+↓
+Account Activation
+↓
+Identity Verification
+↓
+Move-In
+↓
+Portal Access
+↓
+Pay Rent
+↓
+Maintenance
+↓
+Renew Lease
+↓
+Move-Out
+
+Puis :
+
+Vendor
+Invitation
+↓
+Account Activation
+↓
+Assigned Work Orders
+↓
+Upload Invoice
+↓
+Receive Payment
+↓
+Performance Review
+
+Ce document deviendra la référence UX de toute la plateforme.
+
+Ma recommandation
+
+Je ne mettrais pas tout le contenu de l’onboarding dans un document existant. Je créerais un Book 18 – Enterprise Onboarding et je mettrais simplement des références dans les autres documents (System Engines, State Machines, Domain Events, Master Index, Project Context). Cela garde chaque document focalisé sur sa responsabilité tout en faisant de l’onboarding une capacité majeure de la plateforme, au même titre que la sécurité, les API ou l’IA.

@@ -1,0 +1,35 @@
+# Dependencies and builds
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.turbo/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and local data
+*.log
+tmp/
+.cache/
+*.sqlite
+*.sqlite3
+
+# IDE and operating system
+.DS_Store
+.idea/
+.vscode/
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Infrastructure state
+.terraform/
+*.tfstate
+*.tfstate.*
