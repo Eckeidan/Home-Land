@@ -20,6 +20,8 @@ current delivery scope unless promoted into a canonical document.
 - [Onboarding data model](docs/ONBOARDING_DATA_MODEL.md)
 - [Onboarding OpenAPI contract](docs/api/onboarding.openapi.yaml)
 - [Onboarding visual prototype](prototypes/onboarding/README.md)
+- [Onboarding visual validation](docs/ONBOARDING_VISUAL_VALIDATION.md)
+- [Onboarding threat model](docs/THREAT_MODEL_ONBOARDING.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](docs/SECURITY.md)
 - [Delivery roadmap](docs/DELIVERY_ROADMAP.md)

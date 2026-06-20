@@ -103,9 +103,10 @@ function setStep(nextStep) {
   progressPercent.textContent = `${percent}%`;
   progressBar.style.width = `${percent}%`;
   backButton.style.visibility = currentStep === 0 ? "hidden" : "visible";
-  nextButton.innerHTML = currentStep === panels.length - 1
-    ? 'Activate workspace <span aria-hidden="true">↗</span>'
-    : 'Continue <span aria-hidden="true">→</span>';
+  nextButton.innerHTML =
+    currentStep === panels.length - 1
+      ? 'Activate workspace <span aria-hidden="true">↗</span>'
+      : 'Continue <span aria-hidden="true">→</span>';
 
   const insight = insights[currentStep];
   insightTitle.textContent = insight.title;
@@ -159,7 +160,9 @@ stepButtons.forEach((button) => {
 
 document.querySelectorAll('input[type="radio"]').forEach((radio) => {
   radio.addEventListener("change", () => {
-    document.querySelectorAll(".choice-card").forEach((card) => card.classList.remove("is-selected"));
+    document.querySelectorAll(".choice-card").forEach((card) => {
+      card.classList.remove("is-selected");
+    });
     radio.closest(".choice-card").classList.add("is-selected");
     simulateAutosave();
   });

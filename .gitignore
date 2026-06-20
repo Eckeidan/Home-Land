@@ -5,6 +5,8 @@ dist/
 build/
 coverage/
 .turbo/
+packages/database/src/generated/
+*.tsbuildinfo
 
 # Local environment and secrets
 .env

@@ -1,0 +1,21 @@
+{
+  "name": "@home-land/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
+  }
+}

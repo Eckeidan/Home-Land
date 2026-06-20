@@ -24,5 +24,26 @@ MVP decisions live under `docs/` and in `.codex/project-rules.md`.
 
 ## Immediate next action
 
-Do not scaffold the full platform. Complete Phase 0 discovery, approve the first
-domain model and threat model, then implement the Phase 1 walking skeleton.
+The Phase 1 walking skeleton is initialized as an npm workspace monorepo.
+
+## Local development
+
+Prerequisites: Node.js 20.19+, npm 10.8+, Docker Desktop.
+
+```bash
+cp .env.example .env
+npm install
+npm run infra:up
+npm run db:generate
+npm run db:migrate -- --name onboarding_foundation
+npm run dev
+```
+
+Local services:
+
+- Web: `http://localhost:3000`
+- API health: `http://localhost:4000/api/v1/health`
+- Web health: `http://localhost:3000/api/health`
+- PostgreSQL: `localhost:5432`
+
+Run all quality gates with `npm run check`.

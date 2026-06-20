@@ -116,8 +116,7 @@ a:focus-visible {
   overflow: hidden;
   border-right: 1px solid var(--border);
   background:
-    linear-gradient(180deg, rgba(17, 30, 27, 0.97), rgba(7, 13, 12, 0.98)),
-    var(--panel-strong);
+    linear-gradient(180deg, rgba(17, 30, 27, 0.97), rgba(7, 13, 12, 0.98)), var(--panel-strong);
 }
 
 .setup-rail::before {
@@ -128,7 +127,9 @@ a:focus-visible {
   height: 440px;
   border: 1px solid rgba(185, 247, 213, 0.06);
   border-radius: 50%;
-  box-shadow: 0 0 0 60px rgba(185, 247, 213, 0.018), 0 0 0 120px rgba(185, 247, 213, 0.012);
+  box-shadow:
+    0 0 0 60px rgba(185, 247, 213, 0.018),
+    0 0 0 120px rgba(185, 247, 213, 0.012);
   content: "";
 }
 
@@ -235,7 +236,10 @@ a:focus-visible {
   text-align: left;
   background: transparent;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    transform var(--transition);
 }
 
 .step-button:hover {
@@ -449,8 +453,14 @@ a:focus-visible {
 }
 
 @keyframes panel-enter {
-  from { transform: translateY(8px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .step-panel h2 {
@@ -510,7 +520,10 @@ a:focus-visible {
   border-radius: 12px;
   color: var(--text);
   background: rgba(0, 0, 0, 0.19);
-  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition);
 }
 
 .field input,
@@ -520,10 +533,16 @@ a:focus-visible {
 
 .field select {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 18px) 21px, calc(100% - 13px) 21px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 21px,
+    calc(100% - 13px) 21px;
   background-repeat: no-repeat;
-  background-size: 5px 5px, 5px 5px;
+  background-size:
+    5px 5px,
+    5px 5px;
 }
 
 .field input:hover,
@@ -597,7 +616,10 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.13);
-  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    transform var(--transition);
 }
 
 .choice-card:hover span {
@@ -665,7 +687,10 @@ a:focus-visible {
 .secondary-button {
   border-radius: 12px;
   font-weight: 700;
-  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    background var(--transition);
 }
 
 .primary-button {
@@ -701,9 +726,7 @@ a:focus-visible {
   padding: 34px;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(160deg, rgba(19, 41, 33, 0.86), rgba(7, 16, 14, 0.92)),
-    var(--panel);
+  background: linear-gradient(160deg, rgba(19, 41, 33, 0.86), rgba(7, 16, 14, 0.92)), var(--panel);
 }
 
 .insight-glow {
@@ -1017,8 +1040,12 @@ a:focus-visible {
   position: absolute;
   inset: -20px;
   opacity: 0.25;
-  background-image: linear-gradient(28deg, transparent 46%, #567a69 47%, #567a69 49%, transparent 50%), linear-gradient(115deg, transparent 46%, #567a69 47%, #567a69 49%, transparent 50%);
-  background-size: 80px 50px, 110px 60px;
+  background-image:
+    linear-gradient(28deg, transparent 46%, #567a69 47%, #567a69 49%, transparent 50%),
+    linear-gradient(115deg, transparent 46%, #567a69 47%, #567a69 49%, transparent 50%);
+  background-size:
+    80px 50px,
+    110px 60px;
 }
 
 .map-pin {
@@ -1306,9 +1333,9 @@ a:focus-visible {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }

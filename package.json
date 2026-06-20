@@ -1,0 +1,37 @@
+{
+  "name": "the-home-land",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Secure multi-tenant property operations platform",
+  "license": "UNLICENSED",
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.19.0 <21",
+    "npm": ">=10.8.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run db:generate && npm run build -w @home-land/database && npm run build -w @home-land/contracts && npm run build -w @home-land/api && npm run build -w @home-land/web",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "db:generate": "npm run generate -w @home-land/database",
+    "db:migrate": "npm run migrate:dev -w @home-land/database",
+    "db:studio": "npm run studio -w @home-land/database",
+    "dev": "concurrently --kill-others-on-fail --names web,api --prefix-colors green,cyan \"npm run dev -w @home-land/web\" \"npm run dev -w @home-land/api\"",
+    "format": "biome check --write .",
+    "infra:down": "docker compose down",
+    "infra:up": "docker compose up -d",
+    "lint": "biome check .",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.0",
+    "@types/node": "26.0.0",
+    "concurrently": "9.2.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  }
+}

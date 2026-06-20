@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  LOCKED
+  DISABLED
+}
+
+enum OrganizationStatus {
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum OrganizationType {
+  INDIVIDUAL_LANDLORD
+  PROPERTY_MANAGEMENT_COMPANY
+  REAL_ESTATE_AGENCY
+  INVESTMENT_GROUP
+}
+
+enum MembershipRole {
+  OWNER
+  PROPERTY_MANAGER
+  ACCOUNTANT
+  MAINTENANCE_MANAGER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum OnboardingState {
+  REGISTERED
+  EMAIL_VERIFICATION_PENDING
+  EMAIL_VERIFIED
+  ORGANIZATION_CREATED
+  WORKSPACE_CONFIGURED
+  MFA_REQUIRED
+  PORTFOLIO_REQUIRED
+  READY_FOR_REVIEW
+  ACTIVE
+  ABANDONED
+  EXPIRED
+  SUSPENDED
+}
+
+enum PropertyType {
+  SINGLE_FAMILY
+  MULTIFAMILY
+  APARTMENT_COMPLEX
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum UnitStatus {
+  AVAILABLE
+  OCCUPIED
+  OFFLINE
+  ARCHIVED
+}
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(320)
+  fullName        String     @map("full_name") @db.VarChar(160)
+  status          UserStatus @default(PENDING_VERIFICATION)
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version         BigInt     @default(1)
+
+  createdOrganizations Organization[]           @relation("OrganizationCreator")
+  memberships          Membership[]             @relation("MembershipUser")
+  invitedMemberships   Membership[]             @relation("MembershipInviter")
+  sentInvitations      OrganizationInvitation[] @relation("InvitationSender")
+  sessions             UserSession[]
+  termsAcceptances     TermsAcceptance[]
+
+  @@map("users")
+}
+
+model Organization {
+  id               String             @id @default(uuid()) @db.Uuid
+  legalName        String             @map("legal_name") @db.VarChar(200)
+  displayName      String             @map("display_name") @db.VarChar(120)
+  slug             String             @unique @db.VarChar(63)
+  organizationType OrganizationType   @map("organization_type")
+  countryCode      String             @default("US") @map("country_code") @db.Char(2)
+  primaryStateCode String             @map("primary_state_code") @db.Char(2)
+  timeZone         String             @map("time_zone") @db.VarChar(64)
+  currencyCode     String             @default("USD") @map("currency_code") @db.Char(3)
+  status           OrganizationStatus @default(ONBOARDING)
+  createdById      String             @map("created_by") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version          BigInt             @default(1)
+
+  createdBy          User                     @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  memberships        Membership[]
+  onboardingProgress OnboardingProgress?
+  invitations        OrganizationInvitation[]
+  properties         Property[]
+  units              Unit[]
+
+  @@unique([id, status])
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           MembershipRole
+  status         MembershipStatus @default(INVITED)
+  invitedById    String?          @map("invited_by") @db.Uuid
+  acceptedAt     DateTime?        @map("accepted_at") @db.Timestamptz(6)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version        BigInt           @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
+  invitedBy    User?        @relation("MembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@index([organizationId, status])
+  @@map("memberships")
+}
+
+model OnboardingProgress {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @unique @map("organization_id") @db.Uuid
+  state          OnboardingState @default(ORGANIZATION_CREATED)
+  startedAt      DateTime        @default(now()) @map("started_at") @db.Timestamptz(6)
+  lastActivityAt DateTime        @default(now()) @map("last_activity_at") @db.Timestamptz(6)
+  activatedAt    DateTime?       @map("activated_at") @db.Timestamptz(6)
+  version        BigInt          @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@map("onboarding_progress")
+}
+
+model OrganizationInvitation {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  email          String         @db.VarChar(320)
+  proposedRole   MembershipRole @map("proposed_role")
+  tokenHash      Bytes          @unique @map("token_hash")
+  expiresAt      DateTime       @map("expires_at") @db.Timestamptz(6)
+  acceptedAt     DateTime?      @map("accepted_at") @db.Timestamptz(6)
+  revokedAt      DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  invitedById    String         @map("invited_by") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invitedBy    User         @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, email, createdAt(sort: Desc)])
+  @@map("organization_invitations")
+}
+
+model Property {
+  id                    String         @id @default(uuid()) @db.Uuid
+  organizationId        String         @map("organization_id") @db.Uuid
+  name                  String         @db.VarChar(160)
+  propertyType          PropertyType   @map("property_type")
+  addressLine1          String         @map("address_line_1") @db.VarChar(160)
+  addressLine2          String?        @map("address_line_2") @db.VarChar(160)
+  city                  String         @db.VarChar(100)
+  stateCode             String         @map("state_code") @db.Char(2)
+  postalCode            String         @map("postal_code") @db.VarChar(10)
+  countryCode           String         @default("US") @map("country_code") @db.Char(2)
+  timeZone              String         @map("time_zone") @db.VarChar(64)
+  normalizedAddressHash Bytes?         @map("normalized_address_hash")
+  status                PropertyStatus @default(DRAFT)
+  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version               BigInt         @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  units          Unit[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, createdAt(sort: Desc)])
+  @@index([organizationId, normalizedAddressHash])
+  @@map("properties")
+}
+
+model Unit {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String     @map("organization_id") @db.Uuid
+  propertyId     String     @map("property_id") @db.Uuid
+  unitCode       String     @map("unit_code") @db.VarChar(80)
+  status         UnitStatus @default(AVAILABLE)
+  bedrooms       Int?
+  bathrooms      Decimal?   @db.Decimal(3, 1)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version        BigInt     @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property     Property     @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, propertyId, unitCode])
+  @@index([organizationId, propertyId, status])
+  @@map("units")
+}
+
+model UserSession {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  secretHash        Bytes     @unique @map("secret_hash")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  idleExpiresAt     DateTime  @map("idle_expires_at") @db.Timestamptz(6)
+  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  rotatedFromId     String?   @map("rotated_from_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, absoluteExpiresAt])
+  @@map("user_sessions")
+}
+
+model TermsAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  termsVersion String   @map("terms_version") @db.VarChar(40)
+  acceptedAt   DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, termsVersion])
+  @@map("terms_acceptances")
+}
