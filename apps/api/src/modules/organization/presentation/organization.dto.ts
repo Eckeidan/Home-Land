@@ -31,3 +31,17 @@ export class CreateOrganizationDto {
   @IsIn(approximateUnitRanges)
   approximateUnitRange!: ApproximateUnitRange;
 }
+
+export class ConfigureWorkspaceDto {
+  @IsString()
+  @Matches(/^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])?$/)
+  slug!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  timeZone!: string;
+
+  @IsIn(["en-US"])
+  locale!: "en-US";
+}

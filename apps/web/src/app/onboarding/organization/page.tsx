@@ -62,9 +62,10 @@ const usStates = [
 type SubmissionState = "idle" | "submitting" | "success" | "error";
 
 interface OrganizationCreated {
-  organization: { id: string; displayName: string; status: string };
+  organization: { id: string; displayName: string; status: string; version: number };
   membershipRole: "OWNER";
   onboarding: { state: string; nextAction: string };
+  primaryStateCode?: string;
 }
 
 function csrfToken(): string | null {
@@ -116,7 +117,7 @@ export default function OrganizationPage() {
         const message = Array.isArray(payload.message) ? payload.message[0] : payload.message;
         throw new Error(message ?? payload.title ?? "Organization could not be created.");
       }
-      setCreated(payload);
+      setCreated({ ...payload, primaryStateCode: String(form.get("primaryStateCode") ?? "") });
       setState("success");
     } catch (submissionError) {
       setError(
@@ -158,9 +159,12 @@ export default function OrganizationPage() {
               <dd>Configure workspace</dd>
             </div>
           </dl>
-          <button className="identity-submit" type="button" disabled>
-            Workspace configuration is the next slice <span aria-hidden="true">→</span>
-          </button>
+          <Link
+            className="identity-primary-link"
+            href={`/onboarding/workspace/${created.organization.id}?version=${created.organization.version}&state=${created.primaryStateCode ?? "NY"}`}
+          >
+            Configure workspace <span aria-hidden="true">→</span>
+          </Link>
         </section>
       </main>
     );

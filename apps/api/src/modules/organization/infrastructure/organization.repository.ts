@@ -3,8 +3,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
 import type {
   ApproximateUnitRange,
+  OrganizationContext,
   OrganizationCreated,
   OrganizationType,
+  WorkspaceConfigured,
 } from "../domain/organization.types.js";
 
 interface PersistOrganizationInput {
@@ -23,6 +25,27 @@ export type OrganizationCreationResult =
   | { kind: "created"; response: OrganizationCreated }
   | { kind: "replayed"; response: OrganizationCreated }
   | { kind: "conflict" };
+
+interface ConfigureWorkspaceInput extends OrganizationContext {
+  slug: string;
+  timeZone: string;
+  locale: "en-US";
+  expectedVersion: number;
+  correlationId: string;
+}
+
+export type WorkspaceConfigurationResult =
+  | { kind: "configured"; response: WorkspaceConfigured }
+  | { kind: "not_found" }
+  | { kind: "version_mismatch"; currentVersion: number }
+  | { kind: "transition_invalid"; currentState: string }
+  | { kind: "slug_unavailable" };
+
+class WorkspaceTransitionRaceError extends Error {
+  constructor(readonly currentState: string) {
+    super("Workspace onboarding state changed during configuration");
+  }
+}
 
 @Injectable()
 export class OrganizationRepository {
@@ -149,6 +172,115 @@ export class OrganizationRepository {
       if (!existing) throw error;
       if (!this.hashesEqual(existing.requestHash, input.requestHash)) return { kind: "conflict" };
       return { kind: "replayed", response: this.deserializeResponse(existing.response) };
+    }
+  }
+
+  async configureWorkspace(input: ConfigureWorkspaceInput): Promise<WorkspaceConfigurationResult> {
+    try {
+      return await this.database.$transaction(async (transaction) => {
+        const membership = await transaction.membership.findFirst({
+          where: {
+            organizationId: input.organizationId,
+            userId: input.actorUserId,
+            role: "OWNER",
+            status: "ACTIVE",
+          },
+          select: {
+            organization: {
+              select: {
+                id: true,
+                displayName: true,
+                status: true,
+                version: true,
+                onboardingProgress: { select: { state: true } },
+              },
+            },
+          },
+        });
+
+        if (!membership) return { kind: "not_found" };
+        const organization = membership.organization;
+        const currentVersion = Number(organization.version);
+        const currentState = organization.onboardingProgress?.state ?? "MISSING";
+
+        if (organization.status !== "ONBOARDING" || currentState !== "ORGANIZATION_CREATED") {
+          return { kind: "transition_invalid", currentState };
+        }
+        if (currentVersion !== input.expectedVersion) {
+          return { kind: "version_mismatch", currentVersion };
+        }
+
+        const updated = await transaction.organization.updateMany({
+          where: {
+            id: input.organizationId,
+            version: organization.version,
+            status: "ONBOARDING",
+          },
+          data: {
+            slug: input.slug,
+            timeZone: input.timeZone,
+            locale: input.locale,
+            version: { increment: 1 },
+          },
+        });
+        if (updated.count !== 1) return { kind: "version_mismatch", currentVersion };
+
+        const progressed = await transaction.onboardingProgress.updateMany({
+          where: {
+            organizationId: input.organizationId,
+            state: "ORGANIZATION_CREATED",
+          },
+          data: {
+            state: "WORKSPACE_CONFIGURED",
+            lastActivityAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        if (progressed.count !== 1) {
+          throw new WorkspaceTransitionRaceError(currentState);
+        }
+
+        const response: WorkspaceConfigured = {
+          id: organization.id,
+          displayName: organization.displayName,
+          slug: input.slug,
+          status: "ONBOARDING",
+          version: currentVersion + 1,
+        };
+        await transaction.auditEvent.create({
+          data: {
+            organizationId: input.organizationId,
+            actorUserId: input.actorUserId,
+            action: "organization.workspace.configured",
+            targetType: "Organization",
+            targetId: input.organizationId,
+            outcome: "SUCCESS",
+            correlationId: input.correlationId,
+            metadata: { locale: input.locale, timeZone: input.timeZone },
+          },
+        });
+        await transaction.outboxMessage.create({
+          data: {
+            eventType: "WorkspaceConfigured",
+            aggregateType: "Organization",
+            aggregateId: input.organizationId,
+            payload: {
+              organizationId: input.organizationId,
+              locale: input.locale,
+              timeZone: input.timeZone,
+              version: response.version,
+            },
+          },
+        });
+
+        return { kind: "configured", response };
+      });
+    } catch (error) {
+      if (error instanceof WorkspaceTransitionRaceError) {
+        return { kind: "transition_invalid", currentState: error.currentState };
+      }
+      if (this.isUniqueConstraintConflict(error)) return { kind: "slug_unavailable" };
+      throw error;
     }
   }
 

@@ -43,3 +43,24 @@ export interface OrganizationCreated {
     version: number;
   };
 }
+
+export interface OrganizationContext {
+  organizationId: string;
+  actorUserId: string;
+}
+
+export interface ConfigureWorkspaceCommand extends OrganizationContext {
+  slug: string;
+  timeZone: string;
+  locale: "en-US";
+  expectedVersion: number;
+  correlationId: string;
+}
+
+export interface WorkspaceConfigured {
+  id: string;
+  displayName: string;
+  slug: string;
+  status: "ONBOARDING";
+  version: number;
+}
