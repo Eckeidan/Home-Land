@@ -20,6 +20,7 @@ interface PendingVerification {
 interface VerifyEmailInput {
   tokenHash: Uint8Array<ArrayBuffer>;
   sessionHash: Uint8Array<ArrayBuffer>;
+  csrfTokenHash: Uint8Array<ArrayBuffer>;
   idleExpiresAt: Date;
   absoluteExpiresAt: Date;
   correlationId: string;
@@ -131,6 +132,7 @@ export class IdentityRepository {
         data: {
           userId: challenge.userId,
           secretHash: input.sessionHash,
+          csrfTokenHash: input.csrfTokenHash,
           idleExpiresAt: input.idleExpiresAt,
           absoluteExpiresAt: input.absoluteExpiresAt,
         },

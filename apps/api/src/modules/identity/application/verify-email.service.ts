@@ -12,6 +12,7 @@ export class VerifyEmailService {
 
   async execute(command: VerificationCommand): Promise<SessionCredential> {
     const sessionValue = this.tokens.generate();
+    const csrfValue = this.tokens.generate();
     const now = Date.now();
     const idleMinutes = Number.parseInt(process.env.SESSION_IDLE_TTL_MINUTES ?? "60", 10);
     const absoluteHours = Number.parseInt(process.env.SESSION_ABSOLUTE_TTL_HOURS ?? "24", 10);
@@ -21,6 +22,7 @@ export class VerifyEmailService {
     const verified = await this.repository.verifyEmailAndCreateSession({
       tokenHash: this.tokens.hash(command.token),
       sessionHash: this.tokens.hash(sessionValue),
+      csrfTokenHash: this.tokens.hash(csrfValue),
       idleExpiresAt,
       absoluteExpiresAt,
       correlationId: command.correlationId,
@@ -36,6 +38,6 @@ export class VerifyEmailService {
       });
     }
 
-    return { value: sessionValue, idleExpiresAt, absoluteExpiresAt };
+    return { value: sessionValue, csrfValue, idleExpiresAt, absoluteExpiresAt };
   }
 }

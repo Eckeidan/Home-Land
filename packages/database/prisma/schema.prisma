@@ -28,6 +28,14 @@ enum OrganizationType {
   INVESTMENT_GROUP
 }
 
+enum ApproximateUnitRange {
+  ONE_TO_NINE
+  TEN_TO_NINETY_NINE
+  ONE_HUNDRED_TO_FIVE_HUNDRED
+  FIVE_HUNDRED_TO_FIVE_THOUSAND
+  OVER_FIVE_THOUSAND
+}
+
 enum MembershipRole {
   OWNER
   PROPERTY_MANAGER
@@ -107,25 +115,27 @@ model User {
   passwordCredential     PasswordCredential?
   verificationChallenges EmailVerificationChallenge[]
   auditEvents            AuditEvent[]                 @relation("AuditActor")
+  idempotencyRecords     IdempotencyRecord[]
 
   @@map("users")
 }
 
 model Organization {
-  id               String             @id @default(uuid()) @db.Uuid
-  legalName        String             @map("legal_name") @db.VarChar(200)
-  displayName      String             @map("display_name") @db.VarChar(120)
-  slug             String             @unique @db.VarChar(63)
-  organizationType OrganizationType   @map("organization_type")
-  countryCode      String             @default("US") @map("country_code") @db.Char(2)
-  primaryStateCode String             @map("primary_state_code") @db.Char(2)
-  timeZone         String             @map("time_zone") @db.VarChar(64)
-  currencyCode     String             @default("USD") @map("currency_code") @db.Char(3)
-  status           OrganizationStatus @default(ONBOARDING)
-  createdById      String             @map("created_by") @db.Uuid
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  version          BigInt             @default(1)
+  id                   String               @id @default(uuid()) @db.Uuid
+  legalName            String               @map("legal_name") @db.VarChar(200)
+  displayName          String               @map("display_name") @db.VarChar(120)
+  slug                 String?              @unique @db.VarChar(63)
+  organizationType     OrganizationType     @map("organization_type")
+  approximateUnitRange ApproximateUnitRange @map("approximate_unit_range")
+  countryCode          String               @default("US") @map("country_code") @db.Char(2)
+  primaryStateCode     String               @map("primary_state_code") @db.Char(2)
+  timeZone             String?              @map("time_zone") @db.VarChar(64)
+  currencyCode         String               @default("USD") @map("currency_code") @db.Char(3)
+  status               OrganizationStatus   @default(ONBOARDING)
+  createdById          String               @map("created_by") @db.Uuid
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version              BigInt               @default(1)
 
   createdBy          User                     @relation("OrganizationCreator", fields: [createdById], references: [id], onDelete: Restrict)
   memberships        Membership[]
@@ -244,6 +254,7 @@ model UserSession {
   id                String    @id @default(uuid()) @db.Uuid
   userId            String    @map("user_id") @db.Uuid
   secretHash        Bytes     @unique @map("secret_hash")
+  csrfTokenHash     Bytes?    @unique @map("csrf_token_hash")
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
   idleExpiresAt     DateTime  @map("idle_expires_at") @db.Timestamptz(6)
@@ -255,6 +266,24 @@ model UserSession {
 
   @@index([userId, revokedAt, absoluteExpiresAt])
   @@map("user_sessions")
+}
+
+model IdempotencyRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  scope       String   @db.VarChar(120)
+  keyHash     Bytes    @map("key_hash")
+  requestHash Bytes    @map("request_hash")
+  response    Json
+  statusCode  Int      @map("status_code")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([actorUserId, scope, keyHash])
+  @@index([expiresAt])
+  @@map("idempotency_records")
 }
 
 model TermsAcceptance {

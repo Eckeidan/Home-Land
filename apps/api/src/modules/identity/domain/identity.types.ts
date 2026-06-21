@@ -18,6 +18,7 @@ export interface VerificationDelivery {
 
 export interface SessionCredential {
   value: string;
+  csrfValue: string;
   idleExpiresAt: Date;
   absoluteExpiresAt: Date;
 }

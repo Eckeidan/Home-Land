@@ -48,8 +48,19 @@ export class AuthController {
       path: "/",
       expires: session.absoluteExpiresAt,
     });
+    response.cookie(isProduction ? "__Host-thl_csrf" : "thl_csrf", session.csrfValue, {
+      httpOnly: false,
+      secure: isProduction,
+      sameSite: "strict",
+      path: "/",
+      expires: session.absoluteExpiresAt,
+    });
 
-    return { status: "VERIFIED", nextPath: "/onboarding/organization" };
+    return {
+      status: "VERIFIED",
+      nextPath: "/onboarding/organization",
+      csrfToken: session.csrfValue,
+    };
   }
 
   private correlationId(requested?: string): string {

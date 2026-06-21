@@ -2,6 +2,7 @@ import "reflect-metadata";
 import "./config/environment.js";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { AppModule } from "./app.module.js";
 
@@ -12,6 +13,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix("api/v1");
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
