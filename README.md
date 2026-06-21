@@ -45,5 +45,12 @@ Local services:
 - API health: `http://localhost:4000/api/v1/health`
 - Web health: `http://localhost:3000/api/health`
 - PostgreSQL: `localhost:5433` (container port `5432`)
+- Local email inbox: `http://localhost:8025`
+
+Identity slice:
+
+- Registration: `http://localhost:3000/register`
+- Verification links are delivered to Mailpit locally.
+- Organization setup remains a deliberate placeholder until the identity slice is accepted.
 
 Run all quality gates with `npm run check`.

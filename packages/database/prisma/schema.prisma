@@ -76,6 +76,18 @@ enum UnitStatus {
   ARCHIVED
 }
 
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILURE
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   email           String     @unique @db.VarChar(320)
@@ -86,12 +98,15 @@ model User {
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
   version         BigInt     @default(1)
 
-  createdOrganizations Organization[]           @relation("OrganizationCreator")
-  memberships          Membership[]             @relation("MembershipUser")
-  invitedMemberships   Membership[]             @relation("MembershipInviter")
-  sentInvitations      OrganizationInvitation[] @relation("InvitationSender")
-  sessions             UserSession[]
-  termsAcceptances     TermsAcceptance[]
+  createdOrganizations   Organization[]               @relation("OrganizationCreator")
+  memberships            Membership[]                 @relation("MembershipUser")
+  invitedMemberships     Membership[]                 @relation("MembershipInviter")
+  sentInvitations        OrganizationInvitation[]     @relation("InvitationSender")
+  sessions               UserSession[]
+  termsAcceptances       TermsAcceptance[]
+  passwordCredential     PasswordCredential?
+  verificationChallenges EmailVerificationChallenge[]
+  auditEvents            AuditEvent[]                 @relation("AuditActor")
 
   @@map("users")
 }
@@ -197,7 +212,7 @@ model Property {
   version               BigInt         @default(1)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  units          Unit[]
+  units        Unit[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, createdAt(sort: Desc)])
@@ -252,4 +267,67 @@ model TermsAcceptance {
 
   @@unique([userId, termsVersion])
   @@map("terms_acceptances")
+}
+
+model PasswordCredential {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_credentials")
+}
+
+model EmailVerificationChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  Bytes     @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt(sort: Desc)])
+  @@map("email_verification_challenges")
+}
+
+model AuditEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  actorUserId    String?      @map("actor_user_id") @db.Uuid
+  action         String       @db.VarChar(120)
+  targetType     String       @map("target_type") @db.VarChar(80)
+  targetId       String?      @map("target_id") @db.Uuid
+  outcome        AuditOutcome
+  correlationId  String       @map("correlation_id") @db.VarChar(128)
+  metadata       Json?
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([correlationId])
+  @@map("audit_events")
+}
+
+model OutboxMessage {
+  id            String       @id @default(uuid()) @db.Uuid
+  eventType     String       @map("event_type") @db.VarChar(120)
+  eventVersion  Int          @default(1) @map("event_version")
+  aggregateType String       @map("aggregate_type") @db.VarChar(80)
+  aggregateId   String       @map("aggregate_id") @db.Uuid
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  occurredAt    DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(6)
+
+  @@index([status, occurredAt])
+  @@map("outbox_messages")
 }

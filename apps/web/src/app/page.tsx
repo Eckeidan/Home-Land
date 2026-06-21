@@ -40,8 +40,8 @@ export default function HomePage() {
               <small>Next.js · NestJS · PostgreSQL · Prisma</small>
             </p>
           </div>
-          <a href="/api/health">
-            Check web health <span aria-hidden="true">→</span>
+          <a href="/register">
+            Start secure registration <span aria-hidden="true">→</span>
           </a>
         </div>
 
