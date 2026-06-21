@@ -540,6 +540,50 @@ footer {
   font-size: 10px;
 }
 
+.mfa-qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 22px;
+  padding: 10px;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.mfa-manual-secret {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 22px;
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.mfa-secret-label {
+  color: var(--muted);
+  font-family: Inter, sans-serif;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.recovery-code-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.recovery-code-grid code {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 11px;
+  text-align: center;
+}
+
 .identity-consent {
   display: grid;
   grid-template-columns: 18px 1fr;

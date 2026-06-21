@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsEmail, IsString, MaxLength, MinLength } from "class-validator";
+import { Equals, IsEmail, IsString, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
 
 export class RegisterUserDto {
   @IsString()
@@ -29,4 +29,20 @@ export class VerifyEmailDto {
   @MinLength(32)
   @MaxLength(512)
   token!: string;
+}
+
+export class BeginMfaEnrollmentDto {
+  @IsUUID("4")
+  organizationId!: string;
+}
+
+export class ConfirmMfaEnrollmentDto {
+  @IsString()
+  @Matches(/^\d{6}$/)
+  code!: string;
+}
+
+export class AcknowledgeRecoveryCodesDto {
+  @Equals(true)
+  acknowledged!: true;
 }

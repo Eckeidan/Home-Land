@@ -164,9 +164,12 @@ export default function WorkspaceConfigurationPage() {
               <dd>Secure account</dd>
             </div>
           </dl>
-          <button className="identity-submit" type="button" disabled>
-            MFA enrollment is the next slice <span aria-hidden="true">→</span>
-          </button>
+          <Link
+            className="identity-primary-link"
+            href={`/onboarding/mfa?organizationId=${configured.id}`}
+          >
+            Secure owner account <span aria-hidden="true">→</span>
+          </Link>
         </section>
       </main>
     );

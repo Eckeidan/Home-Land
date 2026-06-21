@@ -96,6 +96,11 @@ enum OutboxStatus {
   FAILED
 }
 
+enum MfaFactorStatus {
+  ACTIVE
+  REVOKED
+}
+
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   email           String     @unique @db.VarChar(320)
@@ -116,6 +121,8 @@ model User {
   verificationChallenges EmailVerificationChallenge[]
   auditEvents            AuditEvent[]                 @relation("AuditActor")
   idempotencyRecords     IdempotencyRecord[]
+  mfaEnrollments         MfaEnrollment[]
+  mfaFactors             MfaFactor[]
 
   @@map("users")
 }
@@ -144,6 +151,7 @@ model Organization {
   invitations        OrganizationInvitation[]
   properties         Property[]
   units              Unit[]
+  mfaEnrollments     MfaEnrollment[]
 
   @@unique([id, status])
   @@map("organizations")
@@ -252,21 +260,79 @@ model Unit {
 }
 
 model UserSession {
-  id                String    @id @default(uuid()) @db.Uuid
-  userId            String    @map("user_id") @db.Uuid
-  secretHash        Bytes     @unique @map("secret_hash")
-  csrfTokenHash     Bytes?    @unique @map("csrf_token_hash")
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  idleExpiresAt     DateTime  @map("idle_expires_at") @db.Timestamptz(6)
-  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
-  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
-  rotatedFromId     String?   @map("rotated_from_id") @db.Uuid
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  secretHash             Bytes     @unique @map("secret_hash")
+  csrfTokenHash          Bytes?    @unique @map("csrf_token_hash")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt             DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  idleExpiresAt          DateTime  @map("idle_expires_at") @db.Timestamptz(6)
+  absoluteExpiresAt      DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  revokedAt              DateTime? @map("revoked_at") @db.Timestamptz(6)
+  rotatedFromId          String?   @map("rotated_from_id") @db.Uuid
+  primaryAuthenticatedAt DateTime  @default(now()) @map("primary_authenticated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt, absoluteExpiresAt])
   @@map("user_sessions")
+}
+
+model MfaEnrollment {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  secretCiphertext Bytes     @map("secret_ciphertext")
+  secretIv         Bytes     @map("secret_iv")
+  secretAuthTag    Bytes     @map("secret_auth_tag")
+  keyVersion       Int       @default(1) @map("key_version")
+  attempts         Int       @default(0)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt       DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  factor       MfaFactor?
+
+  @@index([userId, organizationId, expiresAt(sort: Desc)])
+  @@map("mfa_enrollments")
+}
+
+model MfaFactor {
+  id                     String          @id @default(uuid()) @db.Uuid
+  enrollmentId           String          @unique @map("enrollment_id") @db.Uuid
+  userId                 String          @map("user_id") @db.Uuid
+  status                 MfaFactorStatus @default(ACTIVE)
+  secretCiphertext       Bytes           @map("secret_ciphertext")
+  secretIv               Bytes           @map("secret_iv")
+  secretAuthTag          Bytes           @map("secret_auth_tag")
+  keyVersion             Int             @default(1) @map("key_version")
+  confirmedAt            DateTime        @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  recoveryAcknowledgedAt DateTime?       @map("recovery_acknowledged_at") @db.Timestamptz(6)
+  revokedAt              DateTime?       @map("revoked_at") @db.Timestamptz(6)
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  enrollment    MfaEnrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryCodes MfaRecoveryCode[]
+
+  @@index([userId, status])
+  @@map("mfa_factors")
+}
+
+model MfaRecoveryCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  factorId   String    @map("factor_id") @db.Uuid
+  codeHash   String    @map("code_hash") @db.VarChar(255)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  factor MfaFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
+
+  @@index([factorId, consumedAt])
+  @@map("mfa_recovery_codes")
 }
 
 model IdempotencyRecord {

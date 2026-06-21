@@ -159,6 +159,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BeginMfaEnrollmentRequest'
       responses:
         '201':
           description: A short-lived TOTP enrollment challenge.
@@ -197,7 +203,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/MfaEnrollmentConfirmed'
         '400': { $ref: '#/components/responses/InvalidMfaChallenge' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/mfa/enrollments/{enrollmentId}/recovery-codes/acknowledgements:
+    post:
+      tags: [Authentication]
+      operationId: acknowledgeMfaRecoveryCodes
+      parameters:
+        - name: enrollmentId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [acknowledged]
+              properties:
+                acknowledged: { const: true }
+      responses:
+        '200':
+          description: Recovery-code custody acknowledged and onboarding advanced.
+        '400': { $ref: '#/components/responses/InvalidMfaChallenge' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /organizations/{organizationId}/invitations:
     post:
       tags: [Organizations]
@@ -466,12 +502,19 @@ components:
     MfaEnrollmentChallenge:
       type: object
       additionalProperties: false
-      required: [enrollmentId, provisioningUri, manualSecret, expiresAt]
+      required: [enrollmentId, provisioningUri, qrCodeDataUrl, manualSecret, expiresAt]
       properties:
         enrollmentId: { $ref: '#/components/schemas/Uuid' }
         provisioningUri: { type: string, format: uri }
+        qrCodeDataUrl: { type: string, pattern: '^data:image/png;base64,' }
         manualSecret: { type: string, minLength: 16, maxLength: 128 }
         expiresAt: { type: string, format: date-time }
+    BeginMfaEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [organizationId]
+      properties:
+        organizationId: { $ref: '#/components/schemas/Uuid' }
     MfaEnrollmentConfirmed:
       type: object
       additionalProperties: false

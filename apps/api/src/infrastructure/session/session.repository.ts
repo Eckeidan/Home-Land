@@ -23,6 +23,8 @@ export class SessionRepository {
         id: true,
         csrfTokenHash: true,
         lastSeenAt: true,
+        primaryAuthenticatedAt: true,
+        absoluteExpiresAt: true,
         user: { select: { id: true, email: true } },
       },
     });
@@ -37,9 +39,12 @@ export class SessionRepository {
     }
 
     return {
+      sessionId: session.id,
       userId: session.user.id,
       email: session.user.email,
       csrfTokenHash: Uint8Array.from(session.csrfTokenHash),
+      primaryAuthenticatedAt: session.primaryAuthenticatedAt,
+      absoluteExpiresAt: session.absoluteExpiresAt,
     };
   }
 }
