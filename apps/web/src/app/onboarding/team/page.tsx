@@ -142,10 +142,7 @@ function TeamInvitationContent() {
         ) : (
           <p className="identity-disclosure">No invitations sent in this session.</p>
         )}
-        <Link
-          className="identity-secondary-link"
-          href={`/onboarding/portfolio?organizationId=${organizationId ?? ""}`}
-        >
+        <Link className="identity-secondary-link" href={`/app/${organizationId ?? ""}/portfolio`}>
           {invitations.length > 0 ? "Continue to portfolio" : "Skip for now and continue"} →
         </Link>
       </section>

@@ -7,6 +7,7 @@ import { DatabaseModule } from "./infrastructure/database/database.module.js";
 import { SessionModule } from "./infrastructure/session/session.module.js";
 import { IdentityModule } from "./modules/identity/identity.module.js";
 import { OrganizationModule } from "./modules/organization/organization.module.js";
+import { PortfolioModule } from "./modules/portfolio/portfolio.module.js";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { OrganizationModule } from "./modules/organization/organization.module.j
     ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 100 }]),
     IdentityModule,
     OrganizationModule,
+    PortfolioModule,
   ],
   controllers: [HealthController],
   providers: [
