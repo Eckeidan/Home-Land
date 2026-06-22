@@ -134,9 +134,12 @@ function MfaEnrollmentContent() {
             The factor is active, recovery custody is acknowledged, and onboarding can proceed to
             the first portfolio records.
           </p>
-          <button className="identity-submit" type="button" disabled>
-            Team invitations are the next slice <span aria-hidden="true">→</span>
-          </button>
+          <Link
+            className="identity-primary-link"
+            href={`/onboarding/team?organizationId=${organizationId ?? ""}`}
+          >
+            Invite your team <span aria-hidden="true">→</span>
+          </Link>
         </section>
       </main>
     );

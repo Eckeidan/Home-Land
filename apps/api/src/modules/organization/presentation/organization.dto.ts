@@ -1,8 +1,10 @@
 import { Transform } from "class-transformer";
-import { IsIn, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsString, Matches, MaxLength, MinLength } from "class-validator";
 import {
   type ApproximateUnitRange,
   approximateUnitRanges,
+  type InvitationalRole,
+  invitationalRoles,
   type OrganizationType,
   organizationTypes,
 } from "../domain/organization.types.js";
@@ -44,4 +46,21 @@ export class ConfigureWorkspaceDto {
 
   @IsIn(["en-US"])
   locale!: "en-US";
+}
+
+export class CreateInvitationDto {
+  @IsEmail()
+  @MaxLength(320)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+  email!: string;
+
+  @IsIn(invitationalRoles)
+  role!: InvitationalRole;
+}
+
+export class AcceptInvitationDto {
+  @IsString()
+  @MinLength(32)
+  @MaxLength(512)
+  token!: string;
 }

@@ -16,13 +16,19 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { ConfigureWorkspaceService } from "../application/configure-workspace.service.js";
+import { CreateInvitationService } from "../application/create-invitation.service.js";
 import { CreateOrganizationService } from "../application/create-organization.service.js";
 // biome-ignore lint/style/useImportType: NestJS validation requires DTO runtime metadata.
-import { ConfigureWorkspaceDto, CreateOrganizationDto } from "./organization.dto.js";
+import {
+  ConfigureWorkspaceDto,
+  CreateInvitationDto,
+  CreateOrganizationDto,
+} from "./organization.dto.js";
 
 @Controller("organizations")
 export class OrganizationController {
@@ -31,6 +37,8 @@ export class OrganizationController {
     private readonly createOrganization: CreateOrganizationService,
     @Inject(ConfigureWorkspaceService)
     private readonly configureWorkspace: ConfigureWorkspaceService,
+    @Inject(CreateInvitationService)
+    private readonly createInvitation: CreateInvitationService,
   ) {}
 
   @Post()
@@ -52,6 +60,35 @@ export class OrganizationController {
       });
     }
     return this.createOrganization.execute({
+      actorUserId: request.identity.userId,
+      ...body,
+      idempotencyKey,
+      correlationId: this.correlationId(requestedCorrelationId),
+    });
+  }
+
+  @Post(":organizationId/invitations")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(SessionGuard, CsrfGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  invite(
+    @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
+    @Body() body: CreateInvitationDto,
+    @Req() request: AuthenticatedRequest,
+    @Headers("idempotency-key") idempotencyKey?: string,
+    @Headers("x-correlation-id") requestedCorrelationId?: string,
+  ) {
+    if (!request.identity) throw new UnauthorizedException();
+    if (!idempotencyKey || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
+      throw new ConflictException({
+        type: "/problems/idempotency",
+        title: "A valid Idempotency-Key header is required",
+        status: 409,
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+      });
+    }
+    return this.createInvitation.execute({
+      organizationId,
       actorUserId: request.identity.userId,
       ...body,
       idempotencyKey,

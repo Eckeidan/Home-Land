@@ -64,3 +64,29 @@ export interface WorkspaceConfigured {
   status: "ONBOARDING";
   version: number;
 }
+
+export const invitationalRoles = ["PROPERTY_MANAGER", "ACCOUNTANT", "MAINTENANCE_MANAGER"] as const;
+
+export type InvitationalRole = (typeof invitationalRoles)[number];
+
+export interface CreateInvitationCommand extends OrganizationContext {
+  email: string;
+  role: InvitationalRole;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface InvitationSummary {
+  id: string;
+  email: string;
+  role: InvitationalRole;
+  status: "PENDING";
+  expiresAt: Date;
+}
+
+export interface AcceptInvitationCommand {
+  userId: string;
+  email: string;
+  token: string;
+  correlationId: string;
+}

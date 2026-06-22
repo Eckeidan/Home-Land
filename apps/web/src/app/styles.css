@@ -584,6 +584,44 @@ footer {
   text-align: center;
 }
 
+.invitation-list {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invitation-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.invitation-identity,
+.invitation-list strong,
+.invitation-list small {
+  display: block;
+}
+
+.invitation-list strong {
+  font-size: 11px;
+}
+.invitation-list small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.invitation-list em {
+  color: var(--accent);
+  font-size: 9px;
+  font-style: normal;
+}
+
 .identity-consent {
   display: grid;
   grid-template-columns: 18px 1fr;

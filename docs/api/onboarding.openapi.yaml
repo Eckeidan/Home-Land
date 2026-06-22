@@ -256,9 +256,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InvitationSummary'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
+  /organization-invitations/acceptances:
+    post:
+      tags: [Organizations]
+      operationId: acceptOrganizationInvitation
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token: { type: string, minLength: 32, maxLength: 512 }
+      responses:
+        '200':
+          description: Invitation consumed and membership activated atomically.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationAccepted'
+        '400': { $ref: '#/components/responses/InvalidToken' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /organizations/{organizationId}/properties:
     post:
       tags: [Portfolio]
@@ -536,6 +566,15 @@ components:
         role: { type: string }
         status: { const: PENDING }
         expiresAt: { type: string, format: date-time }
+    InvitationAccepted:
+      type: object
+      additionalProperties: false
+      required: [status, organizationId, organizationName, role]
+      properties:
+        status: { const: ACCEPTED }
+        organizationId: { $ref: '#/components/schemas/Uuid' }
+        organizationName: { type: string }
+        role: { enum: [PROPERTY_MANAGER, ACCOUNTANT, MAINTENANCE_MANAGER] }
     PropertySummary:
       type: object
       additionalProperties: false
