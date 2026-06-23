@@ -1,0 +1,5 @@
+ALTER TABLE "stripe_payment_intent_allocations" RENAME CONSTRAINT "stripe_intent_allocations_org_intent_fkey" TO "stripe_payment_intent_allocations_organization_id_stripe_p_fkey";
+ALTER TABLE "stripe_payment_intent_allocations" RENAME CONSTRAINT "stripe_intent_allocations_org_obligation_fkey" TO "stripe_payment_intent_allocations_organization_id_rent_obl_fkey";
+ALTER TABLE "stripe_payment_intents" RENAME CONSTRAINT "stripe_payment_intents_org_payment_fkey" TO "stripe_payment_intents_organization_id_payment_id_fkey";
+ALTER TABLE "stripe_payment_intents" RENAME CONSTRAINT "stripe_payment_intents_org_tenant_fkey" TO "stripe_payment_intents_organization_id_tenant_profile_id_fkey";
+ALTER INDEX "stripe_intent_allocations_org_intent_obligation_key" RENAME TO "stripe_payment_intent_allocations_organization_id_stripe_pa_key";

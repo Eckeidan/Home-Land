@@ -6,8 +6,11 @@ import { HealthService } from "./health/health.service.js";
 import { DatabaseModule } from "./infrastructure/database/database.module.js";
 import { SessionModule } from "./infrastructure/session/session.module.js";
 import { IdentityModule } from "./modules/identity/identity.module.js";
+import { LeasingModule } from "./modules/leasing/leasing.module.js";
+import { MaintenanceModule } from "./modules/maintenance/maintenance.module.js";
 import { OrganizationModule } from "./modules/organization/organization.module.js";
 import { PortfolioModule } from "./modules/portfolio/portfolio.module.js";
+import { RentModule } from "./modules/rent/rent.module.js";
 
 @Module({
   imports: [
@@ -17,6 +20,9 @@ import { PortfolioModule } from "./modules/portfolio/portfolio.module.js";
     IdentityModule,
     OrganizationModule,
     PortfolioModule,
+    LeasingModule,
+    RentModule,
+    MaintenanceModule,
   ],
   controllers: [HealthController],
   providers: [

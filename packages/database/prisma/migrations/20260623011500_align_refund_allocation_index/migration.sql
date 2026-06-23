@@ -1,0 +1,2 @@
+ALTER INDEX "refund_allocations_organization_id_refund_id_payment_alloc_key"
+RENAME TO "refund_allocations_organization_id_refund_id_payment_alloca_key";

@@ -31,6 +31,18 @@ export class VerifyEmailDto {
   token!: string;
 }
 
+export class LoginUserDto {
+  @IsEmail()
+  @MaxLength(320)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+  email!: string;
+
+  @IsString()
+  @MinLength(12)
+  @MaxLength(128)
+  password!: string;
+}
+
 export class BeginMfaEnrollmentDto {
   @IsUUID("4")
   organizationId!: string;

@@ -26,6 +26,15 @@ interface VerifyEmailInput {
   correlationId: string;
 }
 
+interface CreateLoginSessionInput {
+  email: string;
+  sessionHash: Uint8Array<ArrayBuffer>;
+  csrfTokenHash: Uint8Array<ArrayBuffer>;
+  idleExpiresAt: Date;
+  absoluteExpiresAt: Date;
+  correlationId: string;
+}
+
 @Injectable()
 export class IdentityRepository {
   constructor(@Inject(DATABASE_CLIENT) private readonly database: DatabaseClient) {}
@@ -157,6 +166,66 @@ export class IdentityRepository {
       });
 
       return true;
+    });
+  }
+
+  async findActiveCredential(email: string) {
+    return this.database.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        emailVerifiedAt: true,
+        passwordCredential: { select: { passwordHash: true } },
+      },
+    });
+  }
+
+  async createLoginSession(input: CreateLoginSessionInput) {
+    return this.database.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: { email: input.email },
+        select: {
+          id: true,
+          memberships: {
+            where: { status: "ACTIVE" },
+            select: {
+              organizationId: true,
+              role: true,
+              organization: { select: { displayName: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      });
+      if (!user) return null;
+      await transaction.userSession.create({
+        data: {
+          userId: user.id,
+          secretHash: input.sessionHash,
+          csrfTokenHash: input.csrfTokenHash,
+          idleExpiresAt: input.idleExpiresAt,
+          absoluteExpiresAt: input.absoluteExpiresAt,
+        },
+      });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: user.id,
+          action: "identity.session.created",
+          targetType: "UserSession",
+          outcome: "SUCCESS",
+          correlationId: input.correlationId,
+        },
+      });
+      return {
+        userId: user.id,
+        organizations: user.memberships.map((membership) => ({
+          id: membership.organizationId,
+          displayName: membership.organization.displayName,
+          role: membership.role,
+        })),
+      };
     });
   }
 

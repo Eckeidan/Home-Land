@@ -1,0 +1,2 @@
+ALTER INDEX "payment_allocations_organization_id_payment_id_rent_obligation_"
+RENAME TO "payment_allocations_organization_id_payment_id_rent_obligat_key";

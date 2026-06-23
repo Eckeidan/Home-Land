@@ -117,6 +117,7 @@ export default function OrganizationPage() {
         const message = Array.isArray(payload.message) ? payload.message[0] : payload.message;
         throw new Error(message ?? payload.title ?? "Organization could not be created.");
       }
+      window.localStorage.setItem("thl_last_organization_id", payload.organization.id);
       setCreated({ ...payload, primaryStateCode: String(form.get("primaryStateCode") ?? "") });
       setState("success");
     } catch (submissionError) {

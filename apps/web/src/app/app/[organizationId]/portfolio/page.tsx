@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "../../../../components/app-shell";
@@ -311,7 +312,11 @@ export default function PortfolioPage() {
       ) : (
         <section className="property-grid">
           {snapshot.properties.map((property) => (
-            <article className="property-card" key={property.id}>
+            <Link
+              className="property-card property-card-link"
+              href={`/app/${organizationId}/portfolio/${property.id}`}
+              key={property.id}
+            >
               <div className="property-visual">
                 <span className="property-icon">
                   {property.propertyType === "SINGLE_FAMILY" ? "⌂" : "▦"}
@@ -332,7 +337,7 @@ export default function PortfolioPage() {
                   </span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
           <article className="readiness-card">
             <p className="app-eyebrow">Onboarding state</p>
@@ -341,9 +346,9 @@ export default function PortfolioPage() {
               The server reports {snapshot.onboardingState}. Readiness review and workspace
               activation come next.
             </p>
-            <button type="button" disabled>
+            <Link className="readiness-action" href={`/app/${organizationId}/review`}>
               Review readiness →
-            </button>
+            </Link>
           </article>
         </section>
       )}

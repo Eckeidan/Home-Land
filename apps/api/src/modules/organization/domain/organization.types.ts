@@ -65,6 +65,40 @@ export interface WorkspaceConfigured {
   version: number;
 }
 
+export type ReadinessRequirementCode =
+  | "EMAIL_VERIFIED"
+  | "ORGANIZATION_VALID"
+  | "OWNER_MFA_ENABLED"
+  | "FIRST_PROPERTY_CREATED"
+  | "FIRST_UNIT_CREATED"
+  | "TERMS_ACCEPTED";
+
+export interface ReadinessRequirement {
+  code: ReadinessRequirementCode;
+  complete: boolean;
+  actionPath?: string;
+}
+
+export interface OnboardingReadiness {
+  ready: boolean;
+  requirements: ReadinessRequirement[];
+  evaluatedAt: string;
+  version: number;
+}
+
+export interface ActivateWorkspaceCommand extends OrganizationContext {
+  expectedVersion: number;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface WorkspaceActivated {
+  organizationId: string;
+  status: "ACTIVE";
+  activatedAt: string;
+  nextPath: string;
+}
+
 export const invitationalRoles = ["PROPERTY_MANAGER", "ACCOUNTANT", "MAINTENANCE_MANAGER"] as const;
 
 export type InvitationalRole = (typeof invitationalRoles)[number];

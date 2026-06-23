@@ -7,7 +7,7 @@ import helmet from "helmet";
 import { AppModule } from "./app.module.js";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   const port = Number.parseInt(process.env.API_PORT ?? "4000", 10);
   const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 

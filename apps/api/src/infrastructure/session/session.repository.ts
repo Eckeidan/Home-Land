@@ -47,4 +47,11 @@ export class SessionRepository {
       absoluteExpiresAt: session.absoluteExpiresAt,
     };
   }
+
+  async revoke(sessionId: string): Promise<void> {
+    await this.database.userSession.update({
+      where: { id: sessionId },
+      data: { revokedAt: new Date() },
+    });
+  }
 }

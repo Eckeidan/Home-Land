@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { argon2id, hash } from "argon2";
+import { argon2id, hash, verify } from "argon2";
 
 @Injectable()
 export class PasswordHasherService {
@@ -10,5 +10,9 @@ export class PasswordHasherService {
       timeCost: 2,
       parallelism: 1,
     });
+  }
+
+  verify(hashValue: string, password: string): Promise<boolean> {
+    return verify(hashValue, password);
   }
 }

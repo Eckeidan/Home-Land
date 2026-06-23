@@ -385,6 +385,75 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/properties/{propertyId}/buildings:
+    post:
+      tags: [Portfolio]
+      operationId: createBuilding
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: propertyId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '201': { description: Organization-scoped building created. }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /organizations/{organizationId}/properties/{propertyId}/units/import:
+    post:
+      tags: [Portfolio]
+      operationId: importUnitsCsv
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: propertyId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mode, csv]
+              properties:
+                mode: { enum: [DRY_RUN, COMMIT] }
+                csv: { type: string, minLength: 1, maxLength: 200000 }
+      responses:
+        '200': { description: Row-level validation report or committed repeat-safe import. }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /organizations/{organizationId}/properties/{propertyId}:
+    get:
+      tags: [Portfolio]
+      operationId: getPropertyWorkspace
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: propertyId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+      responses:
+        '200':
+          description: Organization-scoped property and unit inventory.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyWorkspace' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /organizations/{organizationId}/onboarding/readiness:
     get:
       tags: [Onboarding]
@@ -554,6 +623,8 @@ components:
       properties:
         buildingId: { oneOf: [{ $ref: '#/components/schemas/Uuid' }, { type: 'null' }] }
         unitCode: { type: string, minLength: 1, maxLength: 80 }
+        bedrooms: { type: integer, minimum: 0, maximum: 20 }
+        bathrooms: { type: number, minimum: 0, maximum: 20, multipleOf: 0.5 }
     OnboardingSnapshot:
       type: object
       additionalProperties: false
@@ -649,7 +720,65 @@ components:
         propertyId: { $ref: '#/components/schemas/Uuid' }
         unitCode: { type: string }
         status: { const: AVAILABLE }
+        bedrooms: { type: [integer, 'null'], minimum: 0 }
+        bathrooms: { type: [string, 'null'], pattern: '^\d{1,2}(?:\.\d)?$' }
+        buildingId: { oneOf: [{ $ref: '#/components/schemas/Uuid' }, { type: 'null' }] }
         version: { type: integer, minimum: 1 }
+    PropertyWorkspace:
+      type: object
+      additionalProperties: false
+      required: [organization, property, buildings, units]
+      properties:
+        organization:
+          type: object
+          additionalProperties: false
+          required: [id, displayName, slug]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            displayName: { type: string }
+            slug: { type: [string, 'null'] }
+        property:
+          type: object
+          additionalProperties: true
+          required: [id, name, propertyType, status, addressLine1, city, stateCode, postalCode, timeZone, version]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            name: { type: string }
+            propertyType: { type: string }
+            status: { type: string }
+            addressLine1: { type: string }
+            addressLine2: { type: [string, 'null'] }
+            city: { type: string }
+            stateCode: { type: string }
+            postalCode: { type: string }
+            timeZone: { type: string }
+            version: { type: integer, minimum: 1 }
+        buildings:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, unitCount, version]
+            properties:
+              id: { $ref: '#/components/schemas/Uuid' }
+              name: { type: string }
+              unitCount: { type: integer, minimum: 0 }
+              version: { type: integer, minimum: 1 }
+        units:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, unitCode, status, bedrooms, bathrooms, buildingId, buildingName, version]
+            properties:
+              id: { $ref: '#/components/schemas/Uuid' }
+              unitCode: { type: string }
+              status: { type: string }
+              bedrooms: { type: [integer, 'null'] }
+              bathrooms: { type: [string, 'null'] }
+              buildingId: { oneOf: [{ $ref: '#/components/schemas/Uuid' }, { type: 'null' }] }
+              buildingName: { type: [string, 'null'] }
+              version: { type: integer, minimum: 1 }
     PortfolioFoundationCreated:
       type: object
       additionalProperties: false
@@ -710,7 +839,9 @@ components:
         organizationId: { $ref: '#/components/schemas/Uuid' }
         status: { const: ACTIVE }
         activatedAt: { type: string, format: date-time }
-        nextPath: { const: /app/inbox }
+        nextPath:
+          type: string
+          pattern: '^/app/[0-9a-f-]{36}/portfolio$'
     Problem:
       type: object
       additionalProperties: true

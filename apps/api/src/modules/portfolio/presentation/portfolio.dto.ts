@@ -1,10 +1,14 @@
 import { Transform, Type } from "class-transformer";
 import {
   IsIn,
+  IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from "class-validator";
@@ -35,6 +39,46 @@ export class UsAddressDto {
 
   @IsIn(["US"])
   countryCode!: "US";
+}
+
+export class CreateUnitDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  unitCode!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  bedrooms?: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(20)
+  bathrooms?: number;
+
+  @IsOptional()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  buildingId?: string;
+}
+
+export class CreateBuildingDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  name!: string;
+}
+
+export class ImportUnitsDto {
+  @IsIn(["DRY_RUN", "COMMIT"])
+  mode!: "DRY_RUN" | "COMMIT";
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200_000)
+  csv!: string;
 }
 
 export class CreatePortfolioFoundationDto {

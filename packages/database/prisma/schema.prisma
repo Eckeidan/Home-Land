@@ -101,6 +101,96 @@ enum MfaFactorStatus {
   REVOKED
 }
 
+enum TenantStatus {
+  PROSPECT
+  INVITED
+  ACTIVE
+  ARCHIVED
+}
+
+enum LeaseStatus {
+  DRAFT
+  READY_FOR_ACTIVATION
+  ACTIVE
+  TERMINATED
+  CANCELLED
+}
+
+enum RentObligationStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerTransactionStatus {
+  POSTED
+  REVERSED
+}
+
+enum PaymentMethod {
+  ACH
+  CHECK
+  CASH
+  STRIPE
+  OTHER
+}
+
+enum PaymentStatus {
+  POSTED
+}
+
+enum RefundStatus {
+  POSTED
+}
+
+enum ReconciliationStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ReconciliationKind {
+  PAYMENT_REVIEW
+  REFUND_REVIEW
+}
+
+enum StripeIntentStatus {
+  REQUIRES_PAYMENT_METHOD
+  PROCESSING
+  SUCCEEDED
+  CANCELED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+enum MaintenancePriority {
+  LOW
+  NORMAL
+  HIGH
+  EMERGENCY
+}
+
+enum MaintenanceRequestStatus {
+  SUBMITTED
+  TRIAGED
+  ASSIGNED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  VERIFIED
+  CLOSED
+  CANCELLED
+}
+
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   email           String     @unique @db.VarChar(320)
@@ -123,6 +213,9 @@ model User {
   idempotencyRecords     IdempotencyRecord[]
   mfaEnrollments         MfaEnrollment[]
   mfaFactors             MfaFactor[]
+  tenantProfiles         TenantProfile[]
+  sentTenantInvitations  TenantInvitation[]
+  resolvedReconciliationItems ReconciliationItem[] @relation("ReconciliationResolver")
 
   @@map("users")
 }
@@ -152,6 +245,17 @@ model Organization {
   properties         Property[]
   units              Unit[]
   mfaEnrollments     MfaEnrollment[]
+  tenantProfiles     TenantProfile[]
+  tenantInvitations  TenantInvitation[]
+  leases             Lease[]
+  rentObligations    RentObligation[]
+  ledgerTransactions LedgerTransaction[]
+  payments           Payment[]
+  receipts           Receipt[]
+  refunds            Refund[]
+  reconciliationItems ReconciliationItem[]
+  stripePaymentIntents StripePaymentIntent[]
+  maintenanceRequests MaintenanceRequest[]
 
   @@unique([id, status])
   @@map("organizations")
@@ -231,7 +335,9 @@ model Property {
   version               BigInt         @default(1)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  buildings     Building[]
   units        Unit[]
+  maintenanceRequests MaintenanceRequest[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, createdAt(sort: Desc)])
@@ -239,10 +345,29 @@ model Property {
   @@map("properties")
 }
 
+model Building {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  propertyId     String   @map("property_id") @db.Uuid
+  name           String   @db.VarChar(120)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version        BigInt   @default(1)
+
+  property Property @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  units    Unit[]
+
+  @@unique([organizationId, propertyId, id])
+  @@unique([organizationId, propertyId, name])
+  @@index([organizationId, propertyId, createdAt])
+  @@map("buildings")
+}
+
 model Unit {
   id             String     @id @default(uuid()) @db.Uuid
   organizationId String     @map("organization_id") @db.Uuid
   propertyId     String     @map("property_id") @db.Uuid
+  buildingId     String?    @map("building_id") @db.Uuid
   unitCode       String     @map("unit_code") @db.VarChar(80)
   status         UnitStatus @default(AVAILABLE)
   bedrooms       Int?
@@ -253,10 +378,360 @@ model Unit {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   property     Property     @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  building     Building?    @relation(fields: [organizationId, propertyId, buildingId], references: [organizationId, propertyId, id], onDelete: Restrict)
+  leases       Lease[]
+  maintenanceRequests MaintenanceRequest[]
 
+  @@unique([organizationId, propertyId, id])
   @@unique([organizationId, propertyId, unitCode])
   @@index([organizationId, propertyId, status])
+  @@index([organizationId, propertyId, buildingId])
   @@map("units")
+}
+
+model TenantProfile {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String?      @map("user_id") @db.Uuid
+  firstName      String       @map("first_name") @db.VarChar(80)
+  lastName       String       @map("last_name") @db.VarChar(80)
+  email          String       @db.VarChar(320)
+  phone          String?      @db.VarChar(32)
+  status         TenantStatus @default(PROSPECT)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version        BigInt       @default(1)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invitations TenantInvitation[]
+  leases       Lease[]
+  payments     Payment[]
+  stripePaymentIntents StripePaymentIntent[]
+  maintenanceRequests MaintenanceRequest[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, email])
+  @@index([organizationId, status, createdAt(sort: Desc)])
+  @@map("tenant_profiles")
+}
+
+model TenantInvitation {
+  id              String    @id @default(uuid()) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  tenantProfileId String    @map("tenant_profile_id") @db.Uuid
+  email           String    @db.VarChar(320)
+  tokenHash       Bytes     @unique @map("token_hash")
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt      DateTime? @map("accepted_at") @db.Timestamptz(6)
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  invitedById     String    @map("invited_by") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tenantProfile TenantProfile @relation(fields: [organizationId, tenantProfileId], references: [organizationId, id], onDelete: Restrict)
+  invitedBy     User          @relation(fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, email, createdAt(sort: Desc)])
+  @@map("tenant_invitations")
+}
+
+model Lease {
+  id                   String      @id @default(uuid()) @db.Uuid
+  organizationId       String      @map("organization_id") @db.Uuid
+  propertyId           String      @map("property_id") @db.Uuid
+  unitId               String      @map("unit_id") @db.Uuid
+  tenantProfileId      String      @map("tenant_profile_id") @db.Uuid
+  status               LeaseStatus @default(DRAFT)
+  startDate            DateTime    @map("start_date") @db.Date
+  endDate              DateTime    @map("end_date") @db.Date
+  monthlyRentMinor     Int         @map("monthly_rent_minor")
+  securityDepositMinor Int         @default(0) @map("security_deposit_minor")
+  currencyCode         String      @default("USD") @map("currency_code") @db.Char(3)
+  rentDueDay           Int         @default(1) @map("rent_due_day")
+  renewalMarkedAt      DateTime?   @map("renewal_marked_at") @db.Timestamptz(6)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version              BigInt      @default(1)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  unit         Unit          @relation(fields: [organizationId, propertyId, unitId], references: [organizationId, propertyId, id], onDelete: Restrict)
+  tenantProfile TenantProfile @relation(fields: [organizationId, tenantProfileId], references: [organizationId, id], onDelete: Restrict)
+  rentObligations RentObligation[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, startDate])
+  @@index([organizationId, unitId, status])
+  @@index([organizationId, tenantProfileId, status])
+  @@map("leases")
+}
+
+model RentObligation {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  leaseId        String               @map("lease_id") @db.Uuid
+  periodStart    DateTime             @map("period_start") @db.Date
+  periodEnd      DateTime             @map("period_end") @db.Date
+  dueDate        DateTime             @map("due_date") @db.Date
+  amountMinor    Int                  @map("amount_minor")
+  currencyCode   String               @default("USD") @map("currency_code") @db.Char(3)
+  status         RentObligationStatus @default(OPEN)
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  version        BigInt               @default(1)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lease        Lease              @relation(fields: [organizationId, leaseId], references: [organizationId, id], onDelete: Restrict)
+  transaction  LedgerTransaction?
+  allocations  PaymentAllocation[]
+  stripeAllocations StripePaymentIntentAllocation[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, leaseId, periodStart])
+  @@index([organizationId, status, dueDate])
+  @@map("rent_obligations")
+}
+
+model LedgerTransaction {
+  id               String                  @id @default(uuid()) @db.Uuid
+  organizationId   String                  @map("organization_id") @db.Uuid
+  rentObligationId String?                 @unique @map("rent_obligation_id") @db.Uuid
+  paymentId        String?                 @unique @map("payment_id") @db.Uuid
+  refundId         String?                 @unique @map("refund_id") @db.Uuid
+  status           LedgerTransactionStatus @default(POSTED)
+  description      String                  @db.VarChar(240)
+  postedAt         DateTime                @default(now()) @map("posted_at") @db.Timestamptz(6)
+  correlationId    String                  @map("correlation_id") @db.VarChar(128)
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rentObligation RentObligation? @relation(fields: [organizationId, rentObligationId], references: [organizationId, id], onDelete: Restrict)
+  payment        Payment?        @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+  refund         Refund?         @relation(fields: [organizationId, refundId], references: [organizationId, id], onDelete: Restrict)
+  entries        LedgerEntry[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, rentObligationId])
+  @@unique([organizationId, paymentId])
+  @@unique([organizationId, refundId])
+  @@index([organizationId, postedAt(sort: Desc)])
+  @@map("ledger_transactions")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  organizationId    String        @map("organization_id") @db.Uuid
+  tenantProfileId   String        @map("tenant_profile_id") @db.Uuid
+  amountMinor       Int           @map("amount_minor")
+  currencyCode      String        @default("USD") @map("currency_code") @db.Char(3)
+  method            PaymentMethod
+  externalReference String?       @map("external_reference") @db.VarChar(120)
+  status            PaymentStatus @default(POSTED)
+  receivedAt        DateTime      @map("received_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tenantProfile TenantProfile       @relation(fields: [organizationId, tenantProfileId], references: [organizationId, id], onDelete: Restrict)
+  allocations   PaymentAllocation[]
+  transaction   LedgerTransaction?
+  receipt       Receipt?
+  refunds       Refund[]
+  reconciliationItems ReconciliationItem[]
+  stripePaymentIntent StripePaymentIntent?
+
+  @@unique([organizationId, id])
+  @@index([organizationId, tenantProfileId, receivedAt(sort: Desc)])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  paymentId        String   @map("payment_id") @db.Uuid
+  rentObligationId String   @map("rent_obligation_id") @db.Uuid
+  amountMinor      Int      @map("amount_minor")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payment        Payment        @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+  rentObligation RentObligation @relation(fields: [organizationId, rentObligationId], references: [organizationId, id], onDelete: Restrict)
+  refundAllocations RefundAllocation[]
+
+  @@unique([organizationId, paymentId, rentObligationId])
+  @@unique([organizationId, id])
+  @@index([organizationId, rentObligationId])
+  @@map("payment_allocations")
+}
+
+model Receipt {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  paymentId      String   @unique @map("payment_id") @db.Uuid
+  receiptNumber  String   @map("receipt_number") @db.VarChar(40)
+  issuedAt       DateTime @default(now()) @map("issued_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payment      Payment      @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, receiptNumber])
+  @@unique([organizationId, paymentId])
+  @@map("receipts")
+}
+
+model Refund {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  paymentId      String       @map("payment_id") @db.Uuid
+  amountMinor    Int          @map("amount_minor")
+  currencyCode   String       @default("USD") @map("currency_code") @db.Char(3)
+  reason         String       @db.VarChar(240)
+  status         RefundStatus @default(POSTED)
+  refundedAt     DateTime     @map("refunded_at") @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payment      Payment            @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+  allocations  RefundAllocation[]
+  transaction  LedgerTransaction?
+  reconciliationItems ReconciliationItem[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, paymentId, refundedAt(sort: Desc)])
+  @@map("refunds")
+}
+
+model RefundAllocation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  refundId            String   @map("refund_id") @db.Uuid
+  paymentAllocationId String   @map("payment_allocation_id") @db.Uuid
+  amountMinor         Int      @map("amount_minor")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  refund            Refund            @relation(fields: [organizationId, refundId], references: [organizationId, id], onDelete: Restrict)
+  paymentAllocation PaymentAllocation @relation(fields: [organizationId, paymentAllocationId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, refundId, paymentAllocationId])
+  @@index([organizationId, paymentAllocationId])
+  @@map("refund_allocations")
+}
+
+model ReconciliationItem {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  kind           ReconciliationKind
+  status         ReconciliationStatus @default(OPEN)
+  paymentId      String?              @map("payment_id") @db.Uuid
+  refundId       String?              @map("refund_id") @db.Uuid
+  resolvedById   String?              @map("resolved_by") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt     DateTime?            @map("resolved_at") @db.Timestamptz(6)
+  version        BigInt               @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payment      Payment?     @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+  refund       Refund?      @relation(fields: [organizationId, refundId], references: [organizationId, id], onDelete: Restrict)
+  resolvedBy   User?        @relation("ReconciliationResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, createdAt])
+  @@map("reconciliation_items")
+}
+
+model StripePaymentIntent {
+  id                    String             @id @default(uuid()) @db.Uuid
+  organizationId        String             @map("organization_id") @db.Uuid
+  tenantProfileId       String             @map("tenant_profile_id") @db.Uuid
+  paymentId             String?            @unique @map("payment_id") @db.Uuid
+  stripePaymentIntentId String             @unique @map("stripe_payment_intent_id") @db.VarChar(255)
+  amountMinor           Int                @map("amount_minor")
+  status                StripeIntentStatus
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version               BigInt             @default(1)
+
+  organization  Organization                    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tenantProfile TenantProfile                   @relation(fields: [organizationId, tenantProfileId], references: [organizationId, id], onDelete: Restrict)
+  payment       Payment?                        @relation(fields: [organizationId, paymentId], references: [organizationId, id], onDelete: Restrict)
+  allocations   StripePaymentIntentAllocation[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, paymentId])
+  @@index([organizationId, status, createdAt])
+  @@map("stripe_payment_intents")
+}
+
+model StripePaymentIntentAllocation {
+  id                    String @id @default(uuid()) @db.Uuid
+  organizationId        String @map("organization_id") @db.Uuid
+  stripePaymentIntentId String @map("stripe_payment_intent_id") @db.Uuid
+  rentObligationId      String @map("rent_obligation_id") @db.Uuid
+  amountMinor           Int    @map("amount_minor")
+
+  intent         StripePaymentIntent @relation(fields: [organizationId, stripePaymentIntentId], references: [organizationId, id], onDelete: Restrict)
+  rentObligation RentObligation      @relation(fields: [organizationId, rentObligationId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, stripePaymentIntentId, rentObligationId])
+  @@map("stripe_payment_intent_allocations")
+}
+
+model StripeWebhookEvent {
+  id              String             @id @default(uuid()) @db.Uuid
+  stripeEventId   String             @unique @map("stripe_event_id") @db.VarChar(255)
+  eventType       String             @map("event_type") @db.VarChar(120)
+  payloadHash     Bytes              @map("payload_hash")
+  status          WebhookEventStatus @default(RECEIVED)
+  receivedAt      DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt     DateTime?          @map("processed_at") @db.Timestamptz(6)
+  errorCode       String?            @map("error_code") @db.VarChar(120)
+
+  @@index([status, receivedAt])
+  @@map("stripe_webhook_events")
+}
+
+model MaintenanceRequest {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  organizationId      String                   @map("organization_id") @db.Uuid
+  propertyId          String                   @map("property_id") @db.Uuid
+  unitId              String?                  @map("unit_id") @db.Uuid
+  tenantProfileId     String?                  @map("tenant_profile_id") @db.Uuid
+  title               String                   @db.VarChar(160)
+  description         String                   @db.VarChar(2000)
+  priority            MaintenancePriority      @default(NORMAL)
+  status              MaintenanceRequestStatus @default(SUBMITTED)
+  assignedVendorName  String?                  @map("assigned_vendor_name") @db.VarChar(160)
+  assignedVendorEmail String?                  @map("assigned_vendor_email") @db.VarChar(320)
+  scheduledFor        DateTime?                @map("scheduled_for") @db.Timestamptz(6)
+  completedAt         DateTime?                @map("completed_at") @db.Timestamptz(6)
+  verifiedAt          DateTime?                @map("verified_at") @db.Timestamptz(6)
+  closedAt            DateTime?                @map("closed_at") @db.Timestamptz(6)
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version             BigInt                   @default(1)
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property      Property       @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  unit          Unit?          @relation(fields: [organizationId, propertyId, unitId], references: [organizationId, propertyId, id], onDelete: Restrict)
+  tenantProfile TenantProfile? @relation(fields: [organizationId, tenantProfileId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, priority, createdAt(sort: Desc)])
+  @@index([organizationId, propertyId, status])
+  @@index([organizationId, tenantProfileId, createdAt(sort: Desc)])
+  @@map("maintenance_requests")
+}
+
+model LedgerEntry {
+  id            String          @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  transactionId String          @map("transaction_id") @db.Uuid
+  accountCode   String          @map("account_code") @db.VarChar(64)
+  direction     LedgerDirection
+  amountMinor   Int             @map("amount_minor")
+  currencyCode  String          @default("USD") @map("currency_code") @db.Char(3)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  transaction LedgerTransaction @relation(fields: [organizationId, transactionId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, transactionId])
+  @@index([organizationId, accountCode, createdAt])
+  @@map("ledger_entries")
 }
 
 model UserSession {

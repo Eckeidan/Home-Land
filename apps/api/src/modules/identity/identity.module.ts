@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AcknowledgeRecoveryCodesService } from "./application/acknowledge-recovery-codes.service.js";
 import { BeginMfaEnrollmentService } from "./application/begin-mfa-enrollment.service.js";
 import { ConfirmMfaEnrollmentService } from "./application/confirm-mfa-enrollment.service.js";
+import { LoginUserService } from "./application/login-user.service.js";
 import { RegisterUserService } from "./application/register-user.service.js";
 import { VerifyEmailService } from "./application/verify-email.service.js";
 import { IdentityRepository } from "./infrastructure/identity.repository.js";
@@ -21,6 +22,7 @@ import { MfaController } from "./presentation/mfa.controller.js";
     AcknowledgeRecoveryCodesService,
     BeginMfaEnrollmentService,
     ConfirmMfaEnrollmentService,
+    LoginUserService,
     RegisterUserService,
     VerifyEmailService,
     IdentityRepository,

@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "The Home Land",
-  description: "Secure property operations, built around action.",
+  title: "Asset Hub",
+  description: "Property operations platform by Meta Global Vision Holding.",
 };
 
 interface RootLayoutProps {

@@ -89,7 +89,7 @@ export default function RegisterPage() {
     <main className="identity-shell">
       <section className="identity-intro" aria-labelledby="registration-title">
         <Link className="identity-brand" href="/">
-          The Home Land
+          Asset Hub
         </Link>
         <p className="identity-eyebrow">Secure account foundation</p>
         <h1 id="registration-title">Create your owner identity.</h1>
