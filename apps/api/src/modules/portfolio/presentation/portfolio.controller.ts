@@ -16,6 +16,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { CreateBuildingService } from "../application/create-building.service.js";
@@ -41,7 +42,7 @@ export class PortfolioController {
   ) {}
 
   @Get()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard)
   get(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
@@ -52,7 +53,7 @@ export class PortfolioController {
 
   @Post("foundation")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   create(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreatePortfolioFoundationDto,
@@ -95,7 +96,7 @@ export class PortfolioPropertyController {
   ) {}
 
   @Get(":propertyId")
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard)
   property(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("propertyId", new ParseUUIDPipe({ version: "4" })) propertyId: string,
@@ -107,7 +108,7 @@ export class PortfolioPropertyController {
 
   @Post(":propertyId/buildings")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   building(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("propertyId", new ParseUUIDPipe({ version: "4" })) propertyId: string,
@@ -130,7 +131,7 @@ export class PortfolioPropertyController {
 
   @Post(":propertyId/units/import")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   import(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("propertyId", new ParseUUIDPipe({ version: "4" })) propertyId: string,
@@ -168,7 +169,7 @@ export class PortfolioPropertyController {
 
   @Post(":propertyId/units")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   unit(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("propertyId", new ParseUUIDPipe({ version: "4" })) propertyId: string,
