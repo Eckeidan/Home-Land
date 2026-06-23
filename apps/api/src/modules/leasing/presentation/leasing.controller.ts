@@ -18,6 +18,7 @@ import {
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { LeasingService } from "../application/leasing.service.js";
@@ -27,7 +28,7 @@ import { AcceptTenantInvitationDto, CreateLeaseDraftDto, CreateTenantDto } from 
 @Controller("organizations/:organizationId/leasing")
 export class LeasingController {
   constructor(@Inject(LeasingService) private readonly service: LeasingService) {}
-  @Get() @UseGuards(SessionGuard) snapshot(
+  @Get() @UseGuards(SessionGuard, OrganizationMembershipGuard) snapshot(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
   ) {
@@ -36,7 +37,7 @@ export class LeasingController {
   }
   @Post("tenants")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   tenant(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateTenantDto,
@@ -56,7 +57,7 @@ export class LeasingController {
   }
   @Post("leases")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   lease(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateLeaseDraftDto,
@@ -76,7 +77,7 @@ export class LeasingController {
   }
   @Post("leases/:leaseId/validate")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   validate(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("leaseId", new ParseUUIDPipe({ version: "4" })) leaseId: string,
@@ -89,7 +90,7 @@ export class LeasingController {
   }
   @Post("leases/:leaseId/activate")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   activate(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("leaseId", new ParseUUIDPipe({ version: "4" })) leaseId: string,
@@ -102,7 +103,7 @@ export class LeasingController {
   }
   @Post("leases/:leaseId/renewal-marker")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   renewal(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("leaseId", new ParseUUIDPipe({ version: "4" })) leaseId: string,
@@ -123,7 +124,7 @@ export class LeasingController {
   }
   @Post("leases/:leaseId/terminate")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   terminate(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("leaseId", new ParseUUIDPipe({ version: "4" })) leaseId: string,
