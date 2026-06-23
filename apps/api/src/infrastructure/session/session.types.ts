@@ -9,6 +9,14 @@ export interface AuthenticatedIdentity {
   absoluteExpiresAt: Date;
 }
 
+export interface ActiveMembership {
+  organizationId: string;
+  userId: string;
+  role: string;
+  status: string;
+}
+
 export interface AuthenticatedRequest extends Request {
   identity?: AuthenticatedIdentity;
+  membership?: ActiveMembership;
 }

@@ -48,6 +48,25 @@ export class SessionRepository {
     };
   }
 
+  async findActiveMembership(userId: string, organizationId: string) {
+    return this.database.membership.findFirst({
+      where: {
+        userId,
+        organizationId,
+        status: "ACTIVE",
+        organization: {
+          status: "ACTIVE",
+        },
+      },
+      select: {
+        organizationId: true,
+        userId: true,
+        role: true,
+        status: true,
+      },
+    });
+  }
+
   async revoke(sessionId: string): Promise<void> {
     await this.database.userSession.update({
       where: { id: sessionId },
