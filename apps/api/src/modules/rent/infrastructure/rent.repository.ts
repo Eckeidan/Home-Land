@@ -2,6 +2,7 @@ import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
 import { assertLedgerBalanced } from "../domain/ledger-policy.js";
+import { money } from "../domain/money.js";
 import type {
   PaymentRecorded,
   RefundRecorded,
@@ -280,6 +281,7 @@ export class RentRepository {
             lease.rentDueDay,
           ),
         );
+        const rentMoney = money(lease.monthlyRentMinor);
         const obligation = await tx.rentObligation.create({
           data: {
             organizationId: input.organizationId,
@@ -287,7 +289,7 @@ export class RentRepository {
             periodStart: input.periodStart,
             periodEnd: input.periodEnd,
             dueDate,
-            amountMinor: lease.monthlyRentMinor,
+            amountMinor: rentMoney.amountMinor,
           },
           select: { id: true, version: true },
         });
@@ -306,14 +308,14 @@ export class RentRepository {
             transactionId: transaction.id,
             accountCode: "RENT_RECEIVABLE",
             direction: "DEBIT" as const,
-            amountMinor: lease.monthlyRentMinor,
+            amountMinor: rentMoney.amountMinor,
           },
           {
             organizationId: input.organizationId,
             transactionId: transaction.id,
             accountCode: "RENT_REVENUE",
             direction: "CREDIT" as const,
-            amountMinor: lease.monthlyRentMinor,
+            amountMinor: rentMoney.amountMinor,
           },
         ];
 
@@ -327,7 +329,7 @@ export class RentRepository {
           unitCode: lease.unit.unitCode,
           period: input.period,
           dueDate: dueDate.toISOString().slice(0, 10),
-          amountMinor: lease.monthlyRentMinor,
+          amountMinor: rentMoney.amountMinor,
           currencyCode: "USD",
           status: "OPEN",
           ledgerTransactionId: transaction.id,
@@ -343,7 +345,7 @@ export class RentRepository {
             targetId: obligation.id,
             outcome: "SUCCESS",
             correlationId: input.correlationId,
-            metadata: { ledgerTransactionId: transaction.id, amountMinor: lease.monthlyRentMinor },
+            metadata: { ledgerTransactionId: transaction.id, amountMinor: rentMoney.amountMinor },
           },
         });
         await tx.outboxMessage.create({
@@ -453,7 +455,9 @@ export class RentRepository {
           if (incoming <= 0 || alreadyAllocated + incoming > obligation.amountMinor)
             return { kind: "allocation_invalid" };
         }
-        const amountMinor = input.allocations.reduce((sum, item) => sum + item.amountMinor, 0);
+        const amountMinor = money(
+          input.allocations.reduce((sum, item) => sum + item.amountMinor, 0),
+        ).amountMinor;
         const tenantProfileId = obligations[0]?.lease.tenantProfileId;
         if (!tenantProfileId) return { kind: "allocation_invalid" };
         const payment = await tx.payment.create({
@@ -690,7 +694,9 @@ export class RentRepository {
           if (amount <= 0 || refunded + amount > allocation.amountMinor)
             return { kind: "allocation_invalid" };
         }
-        const amountMinor = input.allocations.reduce((sum, item) => sum + item.amountMinor, 0);
+        const amountMinor = money(
+          input.allocations.reduce((sum, item) => sum + item.amountMinor, 0),
+        ).amountMinor;
         const refund = await tx.refund.create({
           data: {
             organizationId: input.organizationId,
