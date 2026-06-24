@@ -8,11 +8,14 @@ import {
   NotFoundException,
   PreconditionFailedException,
 } from "@nestjs/common";
+import { leaseTerm } from "../domain/lease-term.js";
 import type {
   CreateLeaseDraftCommand,
   CreateTenantCommand,
   LeaseTransitionCommand,
 } from "../domain/leasing.types.js";
+import { rentAmount } from "../domain/rent-amount.js";
+import { securityDeposit } from "../domain/security-deposit.js";
 import { LeasingRepository } from "../infrastructure/leasing.repository.js";
 import { TenantInvitationMailerService } from "../infrastructure/tenant-invitation-mailer.service.js";
 
@@ -61,15 +64,11 @@ export class LeasingService {
   }
 
   async createLease(command: CreateLeaseDraftCommand) {
-    const startDate = new Date(`${command.startDate}T00:00:00.000Z`);
-    const endDate = new Date(`${command.endDate}T00:00:00.000Z`);
-    if (
-      !Number.isFinite(startDate.valueOf()) ||
-      !Number.isFinite(endDate.valueOf()) ||
-      startDate.toISOString().slice(0, 10) !== command.startDate ||
-      endDate.toISOString().slice(0, 10) !== command.endDate ||
-      startDate >= endDate
-    )
+    let term: ReturnType<typeof leaseTerm>;
+
+    try {
+      term = leaseTerm(command.startDate, command.endDate);
+    } catch {
       throw new BadRequestException(
         this.problem(
           400,
@@ -78,22 +77,40 @@ export class LeasingService {
           command.correlationId,
         ),
       );
+    }
+
+    let rent: ReturnType<typeof rentAmount>;
+    let deposit: ReturnType<typeof securityDeposit>;
+
+    try {
+      rent = rentAmount(command.monthlyRentMinor);
+      deposit = securityDeposit(command.securityDepositMinor);
+    } catch {
+      throw new BadRequestException(
+        this.problem(
+          400,
+          "LEASE_FINANCIALS_INVALID",
+          "Lease financial values are invalid",
+          command.correlationId,
+        ),
+      );
+    }
     const normalized = {
       propertyId: command.propertyId,
       unitId: command.unitId,
       tenantProfileId: command.tenantProfileId,
       startDate: command.startDate,
       endDate: command.endDate,
-      monthlyRentMinor: command.monthlyRentMinor,
-      securityDepositMinor: command.securityDepositMinor,
+      monthlyRentMinor: rent.amountMinor,
+      securityDepositMinor: deposit.amountMinor,
       rentDueDay: command.rentDueDay,
     };
     const result = await this.repository.createLease({
       organizationId: command.organizationId,
       actorUserId: command.actorUserId,
       ...normalized,
-      startDate,
-      endDate,
+      startDate: term.startDate,
+      endDate: term.endDate,
       keyHash: this.hash(command.idempotencyKey),
       requestHash: this.hash(JSON.stringify(normalized)),
       correlationId: command.correlationId,
