@@ -16,6 +16,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { ActivateWorkspaceService } from "../application/activate-workspace.service.js";
@@ -31,7 +32,7 @@ export class OnboardingController {
   ) {}
 
   @Get("readiness")
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard)
   readiness(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
@@ -42,7 +43,7 @@ export class OnboardingController {
 
   @Post("activate")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   activate(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
