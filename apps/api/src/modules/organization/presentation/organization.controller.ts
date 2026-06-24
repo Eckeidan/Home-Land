@@ -43,10 +43,9 @@ export class OrganizationController {
     private readonly createInvitation: CreateInvitationService,
   ) {}
 
-  @Post(":organizationId/invitations")
-  @HttpCode(HttpStatus.ACCEPTED)
-  @RequireRoles("OWNER")
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(SessionGuard, CsrfGuard)
   create(
     @Body() body: CreateOrganizationDto,
     @Req() request: AuthenticatedRequest,
@@ -70,8 +69,8 @@ export class OrganizationController {
     });
   }
 
-  @Patch(":organizationId/workspace")
-  @HttpCode(HttpStatus.OK)
+  @Post(":organizationId/invitations")
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequireRoles("OWNER")
   @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
