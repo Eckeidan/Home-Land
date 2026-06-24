@@ -2,17 +2,7 @@ import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
 import type { MaintenanceAction, MaintenancePriority } from "../domain/maintenance.types.js";
-
-type MaintenanceStatus =
-  | "SUBMITTED"
-  | "TRIAGED"
-  | "ASSIGNED"
-  | "SCHEDULED"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "VERIFIED"
-  | "CLOSED"
-  | "CANCELLED";
+import { nextMaintenanceStatus } from "../domain/maintenance-state-machine.js";
 
 interface CreateInput {
   organizationId: string;
@@ -271,7 +261,7 @@ export class MaintenanceRepository {
         if (!current) return { kind: "not_found" };
         if (Number(current.version) !== input.expectedVersion)
           return { kind: "version_mismatch", currentVersion: Number(current.version) };
-        const next = this.nextStatus(input.action, current.status);
+        const next = nextMaintenanceStatus(input.action, current.status);
         if (!next) return { kind: "state_invalid" };
         const updateData = {
           status: next,
@@ -311,18 +301,5 @@ export class MaintenanceRepository {
     } catch {
       return { kind: "concurrent" };
     }
-  }
-
-  private nextStatus(
-    action: MaintenanceAction,
-    status: MaintenanceStatus,
-  ): MaintenanceStatus | null {
-    if (action === "triage" && status === "SUBMITTED") return "TRIAGED";
-    if (action === "assign" && ["SUBMITTED", "TRIAGED"].includes(status)) return "ASSIGNED";
-    if (action === "complete" && ["ASSIGNED", "SCHEDULED", "IN_PROGRESS"].includes(status))
-      return "COMPLETED";
-    if (action === "verify" && status === "COMPLETED") return "VERIFIED";
-    if (action === "close" && status === "VERIFIED") return "CLOSED";
-    return null;
   }
 }
