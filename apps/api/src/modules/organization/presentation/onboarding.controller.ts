@@ -17,6 +17,7 @@ import {
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
 import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
+import { RequireRoles, RolesGuard } from "../../../infrastructure/session/roles.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { ActivateWorkspaceService } from "../application/activate-workspace.service.js";
@@ -43,7 +44,8 @@ export class OnboardingController {
 
   @Post("activate")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   activate(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,

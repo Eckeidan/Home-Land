@@ -19,6 +19,7 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
 import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
+import { RequireRoles, RolesGuard } from "../../../infrastructure/session/roles.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { ConfigureWorkspaceService } from "../application/configure-workspace.service.js";
@@ -42,9 +43,10 @@ export class OrganizationController {
     private readonly createInvitation: CreateInvitationService,
   ) {}
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @Post(":organizationId/invitations")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequireRoles("OWNER")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   create(
     @Body() body: CreateOrganizationDto,
     @Req() request: AuthenticatedRequest,
@@ -68,9 +70,10 @@ export class OrganizationController {
     });
   }
 
-  @Post(":organizationId/invitations")
-  @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @Patch(":organizationId/workspace")
+  @HttpCode(HttpStatus.OK)
+  @RequireRoles("OWNER")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   invite(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
@@ -99,7 +102,8 @@ export class OrganizationController {
 
   @Patch(":organizationId/workspace")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   configure(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: ConfigureWorkspaceDto,
