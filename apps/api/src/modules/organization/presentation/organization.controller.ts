@@ -18,6 +18,7 @@ import {
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { ConfigureWorkspaceService } from "../application/configure-workspace.service.js";
@@ -43,7 +44,7 @@ export class OrganizationController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   create(
     @Body() body: CreateOrganizationDto,
     @Req() request: AuthenticatedRequest,
@@ -69,7 +70,7 @@ export class OrganizationController {
 
   @Post(":organizationId/invitations")
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   invite(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
@@ -98,7 +99,7 @@ export class OrganizationController {
 
   @Patch(":organizationId/workspace")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   configure(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: ConfigureWorkspaceDto,
