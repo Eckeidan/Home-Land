@@ -17,11 +17,13 @@ import {
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
 import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
+import { RequireRoles, RolesGuard } from "../../../infrastructure/session/roles.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { RentService } from "../application/rent.service.js";
 // biome-ignore lint/style/useImportType: NestJS validation requires DTO runtime metadata.
 import { CreateRentObligationDto, RecordPaymentDto, RecordRefundDto } from "./rent.dto.js";
+
 @Controller("organizations/:organizationId/rent")
 export class RentController {
   constructor(@Inject(RentService) private readonly service: RentService) {}
@@ -34,7 +36,8 @@ export class RentController {
   }
   @Post("obligations")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER", "ACCOUNTANT", "PROPERTY_MANAGER")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   create(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateRentObligationDto,
@@ -63,7 +66,8 @@ export class RentController {
   }
   @Post("payments")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER", "ACCOUNTANT")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   payment(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: RecordPaymentDto,
@@ -92,7 +96,8 @@ export class RentController {
   }
   @Post("refunds")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER", "ACCOUNTANT")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   refund(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: RecordRefundDto,
@@ -121,7 +126,8 @@ export class RentController {
   }
   @Post("reconciliation/:itemId/resolve")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
+  @RequireRoles("OWNER", "ACCOUNTANT")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard, CsrfGuard)
   resolve(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("itemId", new ParseUUIDPipe({ version: "4" })) itemId: string,
