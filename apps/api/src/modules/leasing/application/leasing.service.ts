@@ -8,6 +8,8 @@ import {
   NotFoundException,
   PreconditionFailedException,
 } from "@nestjs/common";
+
+import { assertLeaseFinancialPolicy } from "../domain/lease-financial-policy.js";
 import { leaseTerm } from "../domain/lease-term.js";
 import type {
   CreateLeaseDraftCommand,
@@ -78,7 +80,6 @@ export class LeasingService {
         ),
       );
     }
-
     let rent: ReturnType<typeof rentAmount>;
     let deposit: ReturnType<typeof securityDeposit>;
 
@@ -95,6 +96,25 @@ export class LeasingService {
         ),
       );
     }
+
+    try {
+      assertLeaseFinancialPolicy({
+        term,
+        rent,
+        deposit,
+        rentDueDay: command.rentDueDay,
+      });
+    } catch {
+      throw new BadRequestException(
+        this.problem(
+          400,
+          "LEASE_FINANCIAL_POLICY_INVALID",
+          "Lease financial policy is invalid",
+          command.correlationId,
+        ),
+      );
+    }
+
     const normalized = {
       propertyId: command.propertyId,
       unitId: command.unitId,
