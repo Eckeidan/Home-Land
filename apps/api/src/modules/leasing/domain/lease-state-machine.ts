@@ -1,4 +1,4 @@
-export type LeaseStatus = "DRAFT" | "READY_FOR_ACTIVATION" | "ACTIVE" | "TERMINATED";
+export type LeaseStatus = "DRAFT" | "READY_FOR_ACTIVATION" | "ACTIVE" | "TERMINATED" | "CANCELLED";
 
 export type LeaseTransitionAction = "validate" | "activate" | "renewal-marker" | "terminate";
 

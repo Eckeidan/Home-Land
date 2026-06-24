@@ -1,6 +1,7 @@
 import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
+import { canTransitionLease } from "../domain/lease-state-machine.js";
 import type { LeaseDraftSummary, TenantSummary } from "../domain/leasing.types.js";
 
 interface TenantInput {
@@ -480,7 +481,7 @@ export class LeasingRepository {
           return { kind: "replayed", response: this.leaseResponse(lease, "TERMINATED") };
         if (!terminate && lease.status === "ACTIVE" && lease.renewalMarkedAt)
           return { kind: "replayed", response: this.leaseResponse(lease, "ACTIVE") };
-        if (lease.status !== "ACTIVE") return { kind: "state_invalid" };
+        if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         const currentVersion = Number(lease.version);
         if (currentVersion !== input.expectedVersion)
           return { kind: "version_mismatch", currentVersion };
@@ -635,8 +636,8 @@ export class LeasingRepository {
         if (activate && lease.status === "ACTIVE") {
           return { kind: "replayed", response: this.leaseResponse(lease, "ACTIVE") };
         }
+        if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         const requiredState = activate ? "READY_FOR_ACTIVATION" : "DRAFT";
-        if (lease.status !== requiredState) return { kind: "state_invalid" };
         const currentVersion = Number(lease.version);
         if (currentVersion !== input.expectedVersion)
           return { kind: "version_mismatch", currentVersion };
