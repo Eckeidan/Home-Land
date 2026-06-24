@@ -1,6 +1,7 @@
 import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
+import { assertLedgerBalanced } from "../domain/ledger-policy.js";
 import type {
   PaymentRecorded,
   RefundRecorded,
@@ -299,24 +300,26 @@ export class RentRepository {
           },
           select: { id: true },
         });
-        await tx.ledgerEntry.createMany({
-          data: [
-            {
-              organizationId: input.organizationId,
-              transactionId: transaction.id,
-              accountCode: "RENT_RECEIVABLE",
-              direction: "DEBIT",
-              amountMinor: lease.monthlyRentMinor,
-            },
-            {
-              organizationId: input.organizationId,
-              transactionId: transaction.id,
-              accountCode: "RENT_REVENUE",
-              direction: "CREDIT",
-              amountMinor: lease.monthlyRentMinor,
-            },
-          ],
-        });
+        const entries = [
+          {
+            organizationId: input.organizationId,
+            transactionId: transaction.id,
+            accountCode: "RENT_RECEIVABLE",
+            direction: "DEBIT" as const,
+            amountMinor: lease.monthlyRentMinor,
+          },
+          {
+            organizationId: input.organizationId,
+            transactionId: transaction.id,
+            accountCode: "RENT_REVENUE",
+            direction: "CREDIT" as const,
+            amountMinor: lease.monthlyRentMinor,
+          },
+        ];
+
+        assertLedgerBalanced(entries);
+
+        await tx.ledgerEntry.createMany({ data: entries });
         const response: RentObligationCreated = {
           id: obligation.id,
           leaseId: input.leaseId,
@@ -501,24 +504,26 @@ export class RentRepository {
           },
           select: { id: true },
         });
-        await tx.ledgerEntry.createMany({
-          data: [
-            {
-              organizationId: input.organizationId,
-              transactionId: ledger.id,
-              accountCode: "CASH",
-              direction: "DEBIT",
-              amountMinor,
-            },
-            {
-              organizationId: input.organizationId,
-              transactionId: ledger.id,
-              accountCode: "RENT_RECEIVABLE",
-              direction: "CREDIT",
-              amountMinor,
-            },
-          ],
-        });
+        const entries = [
+          {
+            organizationId: input.organizationId,
+            transactionId: ledger.id,
+            accountCode: "CASH",
+            direction: "DEBIT" as const,
+            amountMinor,
+          },
+          {
+            organizationId: input.organizationId,
+            transactionId: ledger.id,
+            accountCode: "RENT_RECEIVABLE",
+            direction: "CREDIT" as const,
+            amountMinor,
+          },
+        ];
+
+        assertLedgerBalanced(entries);
+
+        await tx.ledgerEntry.createMany({ data: entries });
         const receipt = await tx.receipt.create({
           data: {
             organizationId: input.organizationId,
@@ -743,24 +748,26 @@ export class RentRepository {
           },
           select: { id: true },
         });
-        await tx.ledgerEntry.createMany({
-          data: [
-            {
-              organizationId: input.organizationId,
-              transactionId: ledger.id,
-              accountCode: "RENT_RECEIVABLE",
-              direction: "DEBIT",
-              amountMinor,
-            },
-            {
-              organizationId: input.organizationId,
-              transactionId: ledger.id,
-              accountCode: "CASH",
-              direction: "CREDIT",
-              amountMinor,
-            },
-          ],
-        });
+        const entries = [
+          {
+            organizationId: input.organizationId,
+            transactionId: ledger.id,
+            accountCode: "RENT_RECEIVABLE",
+            direction: "DEBIT" as const,
+            amountMinor,
+          },
+          {
+            organizationId: input.organizationId,
+            transactionId: ledger.id,
+            accountCode: "CASH",
+            direction: "CREDIT" as const,
+            amountMinor,
+          },
+        ];
+
+        assertLedgerBalanced(entries);
+
+        await tx.ledgerEntry.createMany({ data: entries });
         const reconciliation = await tx.reconciliationItem.create({
           data: {
             organizationId: input.organizationId,
