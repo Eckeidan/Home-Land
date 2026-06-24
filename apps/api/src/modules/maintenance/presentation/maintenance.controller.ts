@@ -17,6 +17,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { MaintenanceService } from "../application/maintenance.service.js";
@@ -28,7 +29,7 @@ export class MaintenanceController {
   constructor(@Inject(MaintenanceService) private readonly service: MaintenanceService) {}
 
   @Get()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard)
   snapshot(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
@@ -39,7 +40,7 @@ export class MaintenanceController {
 
   @Post("requests")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   create(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateMaintenanceRequestDto,
@@ -60,7 +61,7 @@ export class MaintenanceController {
 
   @Post("requests/:requestId/:action")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   transition(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("requestId", new ParseUUIDPipe({ version: "4" })) requestId: string,
