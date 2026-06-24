@@ -15,6 +15,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { StripeService } from "../application/stripe.service.js";
@@ -26,7 +27,7 @@ export class StripeIntentController {
   constructor(@Inject(StripeService) private readonly service: StripeService) {}
   @Post("payment-intents")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   create(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateStripePaymentIntentDto,

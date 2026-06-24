@@ -16,6 +16,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CsrfGuard } from "../../../infrastructure/session/csrf.guard.js";
+import { OrganizationMembershipGuard } from "../../../infrastructure/session/organization-membership.guard.js";
 import { SessionGuard } from "../../../infrastructure/session/session.guard.js";
 import type { AuthenticatedRequest } from "../../../infrastructure/session/session.types.js";
 import { RentService } from "../application/rent.service.js";
@@ -24,7 +25,7 @@ import { CreateRentObligationDto, RecordPaymentDto, RecordRefundDto } from "./re
 @Controller("organizations/:organizationId/rent")
 export class RentController {
   constructor(@Inject(RentService) private readonly service: RentService) {}
-  @Get() @UseGuards(SessionGuard) snapshot(
+  @Get() @UseGuards(SessionGuard, OrganizationMembershipGuard) snapshot(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Req() request: AuthenticatedRequest,
   ) {
@@ -33,7 +34,7 @@ export class RentController {
   }
   @Post("obligations")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   create(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: CreateRentObligationDto,
@@ -62,7 +63,7 @@ export class RentController {
   }
   @Post("payments")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   payment(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: RecordPaymentDto,
@@ -91,7 +92,7 @@ export class RentController {
   }
   @Post("refunds")
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   refund(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Body() body: RecordRefundDto,
@@ -120,7 +121,7 @@ export class RentController {
   }
   @Post("reconciliation/:itemId/resolve")
   @HttpCode(HttpStatus.OK)
-  @UseGuards(SessionGuard, CsrfGuard)
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, CsrfGuard)
   resolve(
     @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
     @Param("itemId", new ParseUUIDPipe({ version: "4" })) itemId: string,
