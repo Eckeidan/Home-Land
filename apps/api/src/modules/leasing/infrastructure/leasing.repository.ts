@@ -1,6 +1,7 @@
 import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
+import { assertLeaseActivationPolicy } from "../domain/lease-activation-policy.js";
 import { canTransitionLease } from "../domain/lease-state-machine.js";
 import type { LeaseDraftSummary, TenantSummary } from "../domain/leasing.types.js";
 
@@ -630,6 +631,7 @@ export class LeasingRepository {
             rentDueDay: true,
             tenantProfile: { select: { firstName: true, lastName: true, status: true } },
             unit: { select: { unitCode: true, status: true } },
+            organization: { select: { status: true } },
           },
         });
         if (!lease) return { kind: "not_found" };
@@ -638,6 +640,24 @@ export class LeasingRepository {
         }
         if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         const requiredState = activate ? "READY_FOR_ACTIVATION" : "DRAFT";
+
+        if (activate) {
+          try {
+            assertLeaseActivationPolicy({
+              workspaceStatus: membership.organization.status,
+              leaseStatus: lease.status,
+              tenantStatus: lease.tenantProfile.status,
+              unitStatus: lease.unit.status,
+            });
+          } catch {
+            if (lease.status === "READY_FOR_ACTIVATION" && lease.unit.status !== "AVAILABLE") {
+              return { kind: "unit_unavailable" };
+            }
+
+            return { kind: "requirements_incomplete" };
+          }
+        }
+
         const currentVersion = Number(lease.version);
         if (currentVersion !== input.expectedVersion)
           return { kind: "version_mismatch", currentVersion };
