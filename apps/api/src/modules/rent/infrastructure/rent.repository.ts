@@ -950,4 +950,61 @@ export class RentRepository {
       };
     });
   }
+
+  async accountingSummary(organizationId: string, actorUserId: string) {
+    const result = await this.trialBalance(organizationId, actorUserId);
+    if (result.kind === "not_found") return result;
+
+    const lines = new Map(result.trialBalance.lines.map((line) => [line.accountCode, line]));
+
+    const cashMinor = lines.get("CASH")?.balanceMinor ?? 0;
+    const receivableMinor = lines.get("RENT_RECEIVABLE")?.balanceMinor ?? 0;
+    const revenueMinor = Math.abs(lines.get("RENT_REVENUE")?.balanceMinor ?? 0);
+
+    const obligations = await this.database.rentObligation.findMany({
+      where: { organizationId },
+      select: {
+        amountMinor: true,
+        status: true,
+        allocations: {
+          select: {
+            amountMinor: true,
+            refundAllocations: { select: { amountMinor: true } },
+          },
+        },
+      },
+    });
+
+    const openObligationsMinor = obligations
+      .filter((item) => item.status !== "PAID")
+      .reduce((sum, item) => sum + item.amountMinor, 0);
+
+    const paidMinor = obligations.reduce(
+      (sum, item) => sum + item.allocations.reduce((s, a) => s + a.amountMinor, 0),
+      0,
+    );
+
+    const refundedMinor = obligations.reduce(
+      (sum, item) =>
+        sum +
+        item.allocations.reduce(
+          (s, a) => s + a.refundAllocations.reduce((r, refund) => r + refund.amountMinor, 0),
+          0,
+        ),
+      0,
+    );
+
+    return {
+      kind: "found" as const,
+      summary: {
+        cashMinor,
+        receivableMinor,
+        revenueMinor,
+        openObligationsMinor,
+        paidMinor,
+        refundedMinor,
+        trialBalanceBalanced: result.trialBalance.balanced,
+      },
+    };
+  }
 }

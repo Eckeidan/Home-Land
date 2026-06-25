@@ -49,6 +49,31 @@ type Snapshot = {
     version: number;
   }>;
 };
+
+type TrialBalance = {
+  lines: Array<{
+    accountCode: string;
+    debitMinor: number;
+    creditMinor: number;
+    balanceMinor: number;
+  }>;
+  debitTotalMinor: number;
+  creditTotalMinor: number;
+  balanced: boolean;
+};
+
+type AccountingSummary = {
+  cashMinor: number;
+  receivableMinor: number;
+  revenueMinor: number;
+  openObligationsMinor: number;
+  paidMinor: number;
+  refundedMinor: number;
+  trialBalanceBalanced: boolean;
+};
+
+const usd = (minor: number) => `$${(minor / 100).toFixed(2)}`;
+
 function csrf() {
   const prefix = process.env.NODE_ENV === "production" ? "__Host-thl_csrf=" : "thl_csrf=";
   const item = document.cookie.split("; ").find((value) => value.startsWith(prefix));
@@ -62,20 +87,44 @@ export default function RentPage() {
   const key = useRef(crypto.randomUUID());
   const paymentKey = useRef(crypto.randomUUID());
   const refundKey = useRef(crypto.randomUUID());
+  const [trialBalance, setTrialBalance] = useState<TrialBalance | null>(null);
+  const [accountingSummary, setAccountingSummary] = useState<AccountingSummary | null>(null);
   const load = useCallback(async () => {
     try {
-      const response = await fetch(`${api}/organizations/${organizationId}/rent`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.title);
-      setData(body);
+      const [rentResponse, trialResponse, summaryResponse] = await Promise.all([
+        fetch(`${api}/organizations/${organizationId}/rent`, {
+          credentials: "include",
+          cache: "no-store",
+        }),
+        fetch(`${api}/organizations/${organizationId}/rent/trial-balance`, {
+          credentials: "include",
+          cache: "no-store",
+        }),
+        fetch(`${api}/organizations/${organizationId}/rent/accounting-summary`, {
+          credentials: "include",
+          cache: "no-store",
+        }),
+      ]);
+
+      const [rentBody, trialBody, summaryBody] = await Promise.all([
+        rentResponse.json(),
+        trialResponse.json(),
+        summaryResponse.json(),
+      ]);
+
+      if (!rentResponse.ok) throw new Error(rentBody.title);
+      if (!trialResponse.ok) throw new Error(trialBody.title);
+      if (!summaryResponse.ok) throw new Error(summaryBody.title);
+
+      setData(rentBody);
+      setTrialBalance(trialBody);
+      setAccountingSummary(summaryBody);
       setError(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Rent operations unavailable.");
     }
   }, [organizationId]);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -226,6 +275,71 @@ export default function RentPage() {
         </div>
         <span className="readiness-badge">${(openMinor / 100).toFixed(2)} open</span>
       </section>
+
+      {accountingSummary && trialBalance ? (
+        <section className="leasing-grid rent-payment-grid">
+          <div className="unit-inventory">
+            <div className="unit-inventory-heading">
+              <div>
+                <p className="app-eyebrow">Accounting summary</p>
+                <h2>Financial position</h2>
+              </div>
+              <strong>{accountingSummary.trialBalanceBalanced ? "OK" : "FAIL"}</strong>
+            </div>
+            <article className="unit-row">
+              <span className="unit-mark">$</span>
+              <div>
+                <h3>Cash</h3>
+                <p>{usd(accountingSummary.cashMinor)}</p>
+              </div>
+            </article>
+            <article className="unit-row">
+              <span className="unit-mark">$</span>
+              <div>
+                <h3>Receivable</h3>
+                <p>{usd(accountingSummary.receivableMinor)}</p>
+              </div>
+            </article>
+            <article className="unit-row">
+              <span className="unit-mark">$</span>
+              <div>
+                <h3>Revenue</h3>
+                <p>{usd(accountingSummary.revenueMinor)}</p>
+              </div>
+            </article>
+            <article className="unit-row">
+              <span className="unit-mark">↩</span>
+              <div>
+                <h3>Refunded</h3>
+                <p>{usd(accountingSummary.refundedMinor)}</p>
+              </div>
+            </article>
+          </div>
+
+          <div className="unit-inventory">
+            <div className="unit-inventory-heading">
+              <div>
+                <p className="app-eyebrow">Trial balance</p>
+                <h2>Debit = Credit</h2>
+              </div>
+              <strong>{trialBalance.balanced ? "BALANCED" : "EXCEPTION"}</strong>
+            </div>
+            {trialBalance.lines.map((line) => (
+              <article className="unit-row" key={line.accountCode}>
+                <span className="unit-mark">=</span>
+                <div>
+                  <h3>{line.accountCode}</h3>
+                  <p>
+                    Debit {usd(line.debitMinor)} · Credit {usd(line.creditMinor)} · Balance{" "}
+                    {usd(line.balanceMinor)}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="leasing-grid rent-payment-grid">
         <div className="unit-inventory stripe-summary">
           <div className="unit-inventory-heading">

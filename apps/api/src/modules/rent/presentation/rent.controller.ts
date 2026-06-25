@@ -45,6 +45,18 @@ export class RentController {
     if (!request.identity) throw new UnauthorizedException();
     return this.service.trialBalance(organizationId, request.identity.userId);
   }
+
+  @Get("accounting-summary")
+  @UseGuards(SessionGuard, OrganizationMembershipGuard, RolesGuard)
+  @RequireRoles("OWNER", "ACCOUNTANT")
+  accountingSummary(
+    @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    if (!request.identity) throw new UnauthorizedException();
+    return this.service.accountingSummary(organizationId, request.identity.userId);
+  }
+
   @Post("obligations")
   @HttpCode(HttpStatus.CREATED)
   @RequireRoles("OWNER", "ACCOUNTANT", "PROPERTY_MANAGER")

@@ -252,4 +252,16 @@ export class RentService {
   private problem(status: number, code: string, title: string, correlationId?: string) {
     return { type: "/problems/rent", title, status, code, correlationId };
   }
+
+  async accountingSummary(organizationId: string, actorUserId: string) {
+    const result = await this.repository.accountingSummary(organizationId, actorUserId);
+
+    if (result.kind === "not_found") {
+      throw new NotFoundException(
+        this.problem(404, "ACCOUNTING_SUMMARY_NOT_FOUND", "Accounting summary was not found"),
+      );
+    }
+
+    return result.summary;
+  }
 }
