@@ -6,6 +6,7 @@ import { leaseEvent } from "../domain/lease-events.js";
 import { assertLeaseRenewalPolicy } from "../domain/lease-renewal-policy.js";
 import { canTransitionLease } from "../domain/lease-state-machine.js";
 import type { LeaseDraftSummary, TenantSummary } from "../domain/leasing.types.js";
+import { tenantEvent } from "../domain/tenant-events.js";
 
 interface TenantInput {
   organizationId: string;
@@ -252,18 +253,18 @@ export class LeasingRepository {
             metadata: { invitationSent: input.sendInvitation },
           },
         });
-        await tx.outboxMessage.create({
-          data: {
-            eventType: "TenantProfileCreated",
-            aggregateType: "TenantProfile",
-            aggregateId: tenant.id,
-            payload: {
-              organizationId: input.organizationId,
-              tenantProfileId: tenant.id,
-              invitationCreated: input.sendInvitation,
-            },
+        const event = tenantEvent({
+          eventType: "TenantProfileCreated",
+          aggregateType: "TenantProfile",
+          aggregateId: tenant.id,
+          payload: {
+            organizationId: input.organizationId,
+            tenantProfileId: tenant.id,
+            invitationCreated: input.sendInvitation,
           },
         });
+
+        await tx.outboxMessage.create({ data: event });
         await tx.idempotencyRecord.create({
           data: {
             actorUserId: input.actorUserId,
@@ -379,7 +380,6 @@ export class LeasingRepository {
             correlationId: input.correlationId,
           },
         });
-
         const event = leaseEvent({
           eventType: "LeaseDraftCreated",
           aggregateType: "Lease",
@@ -391,6 +391,8 @@ export class LeasingRepository {
             tenantProfileId: input.tenantProfileId,
           },
         });
+
+        await tx.outboxMessage.create({ data: event });
 
         await tx.outboxMessage.create({ data: event });
 
