@@ -2,6 +2,7 @@ import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
 import { assertLeaseActivationPolicy } from "../domain/lease-activation-policy.js";
+import { assertLeaseRenewalPolicy } from "../domain/lease-renewal-policy.js";
 import { canTransitionLease } from "../domain/lease-state-machine.js";
 import type { LeaseDraftSummary, TenantSummary } from "../domain/leasing.types.js";
 
@@ -480,8 +481,24 @@ export class LeasingRepository {
         if (!lease) return { kind: "not_found" };
         if (terminate && lease.status === "TERMINATED")
           return { kind: "replayed", response: this.leaseResponse(lease, "TERMINATED") };
-        if (!terminate && lease.status === "ACTIVE" && lease.renewalMarkedAt)
-          return { kind: "replayed", response: this.leaseResponse(lease, "ACTIVE") };
+        if (!terminate) {
+          try {
+            assertLeaseRenewalPolicy({
+              leaseStatus: lease.status,
+              renewalMarkedAt: lease.renewalMarkedAt,
+              endDate: lease.endDate,
+              now: new Date(lease.endDate.getTime() - 90 * 24 * 60 * 60 * 1000),
+            });
+          } catch {
+            if (lease.status === "ACTIVE" && lease.renewalMarkedAt) {
+              return { kind: "replayed", response: this.leaseResponse(lease, "ACTIVE") };
+            }
+
+            return { kind: "state_invalid" };
+          }
+        }
+
+        if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         const currentVersion = Number(lease.version);
         if (currentVersion !== input.expectedVersion)
