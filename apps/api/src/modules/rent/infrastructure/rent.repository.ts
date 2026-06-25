@@ -8,6 +8,7 @@ import type {
   RefundRecorded,
   RentObligationCreated,
 } from "../domain/rent.types.js";
+import { trialBalance } from "../domain/trial-balance.js";
 
 interface Input {
   organizationId: string;
@@ -224,6 +225,36 @@ export class RentRepository {
       },
     };
   }
+
+  async trialBalance(organizationId: string, actorUserId: string) {
+    const membership = await this.database.membership.findFirst({
+      where: {
+        organizationId,
+        userId: actorUserId,
+        status: "ACTIVE",
+        role: { in: ["OWNER", "ACCOUNTANT"] },
+      },
+      select: { id: true },
+    });
+
+    if (!membership) return { kind: "not_found" as const };
+
+    const entries = await this.database.ledgerEntry.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        accountCode: true,
+        direction: true,
+        amountMinor: true,
+      },
+    });
+
+    return {
+      kind: "found" as const,
+      trialBalance: trialBalance(entries),
+    };
+  }
+
   async create(input: Input): Promise<RentResult> {
     const scope = `rent.obligation.create.v1:${input.organizationId}:${input.leaseId}`;
     try {

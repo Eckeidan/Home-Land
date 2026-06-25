@@ -97,6 +97,7 @@ export class RentService {
           command.correlationId,
         ),
       );
+
     const normalized = {
       method: command.method,
       receivedAt: receivedAt.toISOString(),
@@ -233,6 +234,17 @@ export class RentService {
         command.correlationId,
       ),
     );
+  }
+  async trialBalance(organizationId: string, actorUserId: string) {
+    const result = await this.repository.trialBalance(organizationId, actorUserId);
+
+    if (result.kind === "not_found") {
+      throw new NotFoundException(
+        this.problem(404, "TRIAL_BALANCE_NOT_FOUND", "Trial balance was not found"),
+      );
+    }
+
+    return result.trialBalance;
   }
   private hash(value: string): Uint8Array<ArrayBuffer> {
     return Uint8Array.from(createHash("sha256").update(value).digest());
