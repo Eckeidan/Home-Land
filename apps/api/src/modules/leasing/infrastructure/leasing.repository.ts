@@ -2,6 +2,7 @@ import type { DatabaseClient } from "@home-land/database";
 import { Inject, Injectable } from "@nestjs/common";
 import { DATABASE_CLIENT } from "../../../infrastructure/database/database.constants.js";
 import { assertLeaseActivationPolicy } from "../domain/lease-activation-policy.js";
+import { leaseEvent } from "../domain/lease-events.js";
 import { assertLeaseRenewalPolicy } from "../domain/lease-renewal-policy.js";
 import { canTransitionLease } from "../domain/lease-state-machine.js";
 import type { LeaseDraftSummary, TenantSummary } from "../domain/leasing.types.js";
@@ -378,19 +379,21 @@ export class LeasingRepository {
             correlationId: input.correlationId,
           },
         });
-        await tx.outboxMessage.create({
-          data: {
-            eventType: "LeaseDraftCreated",
-            aggregateType: "Lease",
-            aggregateId: lease.id,
-            payload: {
-              organizationId: input.organizationId,
-              leaseId: lease.id,
-              unitId: input.unitId,
-              tenantProfileId: input.tenantProfileId,
-            },
+
+        const event = leaseEvent({
+          eventType: "LeaseDraftCreated",
+          aggregateType: "Lease",
+          aggregateId: lease.id,
+          payload: {
+            organizationId: input.organizationId,
+            leaseId: lease.id,
+            unitId: input.unitId,
+            tenantProfileId: input.tenantProfileId,
           },
         });
+
+        await tx.outboxMessage.create({ data: event });
+
         await tx.idempotencyRecord.create({
           data: {
             actorUserId: input.actorUserId,
@@ -498,8 +501,6 @@ export class LeasingRepository {
           }
         }
 
-        if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
-        if (!canTransitionLease(lease.status, operation)) return { kind: "state_invalid" };
         const currentVersion = Number(lease.version);
         if (currentVersion !== input.expectedVersion)
           return { kind: "version_mismatch", currentVersion };
