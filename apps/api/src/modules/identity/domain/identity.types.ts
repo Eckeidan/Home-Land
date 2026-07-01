@@ -1,7 +1,6 @@
 export interface RegistrationCommand {
   fullName: string;
   email: string;
-  password: string;
   acceptedTermsVersion: string;
   correlationId: string;
 }
@@ -14,6 +13,7 @@ export interface VerificationCommand {
 export interface VerificationDelivery {
   email: string;
   token: string;
+  temporaryPassword: string;
 }
 
 export interface SessionCredential {

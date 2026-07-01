@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { randomBytes } from "node:crypto";
 import type { RegistrationCommand } from "../domain/identity.types.js";
 import { IdentityRepository } from "../infrastructure/identity.repository.js";
 import { PasswordHasherService } from "../infrastructure/password-hasher.service.js";
@@ -33,7 +34,8 @@ export class RegisterUserService {
 
     const email = command.email.trim().toLowerCase();
     const fullName = command.fullName.trim().replace(/\s+/g, " ");
-    const passwordHash = await this.passwordHasher.hash(command.password);
+    const temporaryPassword = this.generateTemporaryPassword();
+    const passwordHash = await this.passwordHasher.hash(temporaryPassword);
     const token = this.tokens.generate();
     let pendingVerification = null;
     try {
@@ -52,13 +54,17 @@ export class RegisterUserService {
       }
     }
 
-    if (pendingVerification) {
+    if (pendingVerification?.shouldSendVerification) {
       void this.mailer
-        .sendVerification({ email: pendingVerification.email, token })
+        .sendVerification({ email: pendingVerification.email, temporaryPassword, token })
         .catch(() => undefined);
     }
 
     return { status: "ACCEPTED", nextAction: "CHECK_EMAIL" };
+  }
+
+  private generateTemporaryPassword(): string {
+    return `AH-${randomBytes(9).toString("base64url")}-${randomBytes(3).toString("hex")}`;
   }
 
   private isUniqueConstraintConflict(error: unknown): boolean {

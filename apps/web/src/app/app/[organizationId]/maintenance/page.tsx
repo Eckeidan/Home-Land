@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AppShell } from "../../../../components/app-shell";
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -144,12 +143,7 @@ export default function MaintenancePage() {
   const emergency = open.filter((request) => request.priority === "EMERGENCY").length;
 
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName={data.organization.displayName}
-      workspaceSlug={data.organization.slug}
-      activeSection="Maintenance"
-    >
+    <>
       <section className="portfolio-heading">
         <div>
           <p className="app-eyebrow">Maintenance operations</p>
@@ -322,6 +316,6 @@ export default function MaintenancePage() {
           )}
         </div>
       </section>
-    </AppShell>
+    </>
   );
 }

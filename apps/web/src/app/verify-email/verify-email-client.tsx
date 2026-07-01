@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
+const acceptedRegistrationKey = "asset_hub_registration_accepted_email";
 
 type VerificationState = "verifying" | "verified" | "invalid";
 
@@ -27,7 +28,14 @@ export function VerifyEmailClient() {
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
-    }).then((response) => setState(response.ok ? "verified" : "invalid"));
+    }).then((response) => {
+      if (response.ok) {
+        window.localStorage.removeItem(acceptedRegistrationKey);
+        setState("verified");
+        return;
+      }
+      setState("invalid");
+    });
   }, [searchParams]);
 
   return (

@@ -14,12 +14,11 @@ export class LoginUserService {
   async execute(command: { email: string; password: string; correlationId: string }) {
     const email = command.email.trim().toLowerCase();
     const user = await this.repository.findActiveCredential(email);
-    const valid =
-      user?.status === "ACTIVE" &&
-      user.emailVerifiedAt &&
-      user.passwordCredential &&
+    const passwordValid =
+      user?.passwordCredential &&
       (await this.passwords.verify(user.passwordCredential.passwordHash, command.password));
-    if (!valid)
+
+    if (!user || !passwordValid)
       throw new UnauthorizedException({
         type: "/problems/authentication",
         title: "Invalid email or password",
@@ -27,6 +26,17 @@ export class LoginUserService {
         code: "INVALID_CREDENTIALS",
         correlationId: command.correlationId,
       });
+
+    if (user.status !== "ACTIVE" || !user.emailVerifiedAt) {
+      throw new UnauthorizedException({
+        type: "/problems/email-verification-required",
+        title: "Verify your email before signing in",
+        status: 401,
+        code: "EMAIL_VERIFICATION_REQUIRED",
+        correlationId: command.correlationId,
+      });
+    }
+
     const sessionValue = this.tokens.generate();
     const csrfValue = this.tokens.generate();
     const now = Date.now();

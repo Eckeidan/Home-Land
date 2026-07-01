@@ -2,49 +2,38 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useState } from "react";
-import { AppShell } from "../../../components/app-shell";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import "./dashboard.css";
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
 type Portfolio = {
-  organization: { displayName: string; slug: string | null; status: string };
-  properties: Array<{ id: string; name: string; unitCount: number; availableUnitCount: number }>;
+  organization: { displayName: string; slug: string | null };
+  properties: Array<{ id?: string; name?: string; unitCount: number; occupiedUnits: number }>;
 };
+
 type Leasing = {
-  tenants: unknown[];
-  leases: Array<{
-    status: string;
-    tenantName?: string;
-    unitCode?: string;
-    startDate?: string;
-    endDate?: string;
-  }>;
+  tenants: Array<{ id?: string; status?: string }>;
+  leases: Array<{ id?: string; tenantName?: string; unitCode?: string; status: string }>;
 };
+
 type Rent = {
   obligations: Array<{
+    id?: string;
     tenantName?: string;
     unitCode?: string;
-    period?: string;
-    dueDate?: string;
+    amountMinor?: number;
     outstandingMinor: number;
     status: string;
   }>;
-  reconciliationItems: unknown[];
-};
-type Maintenance = {
-  requests: Array<{
-    title?: string;
-    status: string;
-    priority: string;
-    propertyName?: string;
-    unitCode?: string | null;
-    createdAt?: string;
-  }>;
+  reconciliationItems: Array<{ id?: string; kind?: string }>;
 };
 
-type Overview = {
+type Maintenance = {
+  requests: Array<{ id?: string; title?: string; priority: string; status: string }>;
+};
+
+type DashboardData = {
   portfolio: Portfolio;
   leasing: Leasing;
   rent: Rent;
@@ -53,18 +42,62 @@ type Overview = {
 
 async function loadJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { credentials: "include", cache: "no-store" });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.title ?? "Workspace unavailable.");
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) throw new Error(body?.title ?? body?.message ?? "Request failed");
+
   return body as T;
 }
 
-export default function WorkspaceOverviewPage() {
+function usd(minor: number) {
+  return `$${(minor / 100).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+const revenueTrend = [
+  ["Jul", 36],
+  ["Aug", 44],
+  ["Sep", 39],
+  ["Oct", 47],
+  ["Nov", 58],
+  ["Dec", 52],
+  ["Jan", 64],
+  ["Feb", 68],
+  ["Mar", 83],
+  ["Apr", 76],
+  ["May", 88],
+  ["Jun", 92],
+] as const;
+
+const heatMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] as const;
+
+const heatRows = [
+  ["Sunset Apartments", "24", ["good", "good", "good", "good", "good", "warn"]],
+  ["Maple Grove Homes", "18", ["good", "good", "good", "good", "good", "good"]],
+  ["Riverside Condos", "32", ["good", "good", "good", "good", "bad", "good"]],
+  ["Hillview Townhomes", "16", ["good", "warn", "good", "good", "good", "good"]],
+  ["Bayside Villas", "20", ["good", "good", "good", "good", "good", "good"]],
+] as const;
+
+const tasks = [
+  "Review rent exceptions",
+  "Approve lease renewal",
+  "Check maintenance SLA",
+  "Invite new tenant",
+  "Review Stripe reconciliation",
+] as const;
+
+export default function DashboardPage() {
   const { organizationId } = useParams<{ organizationId: string }>();
-  const [data, setData] = useState<Overview | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastOrganizationId, setLastOrganizationId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(true);
 
   const load = useCallback(async () => {
+    setBusy(true);
+
     try {
       const [portfolio, leasing, rent, maintenance] = await Promise.all([
         loadJson<Portfolio>(`${api}/organizations/${organizationId}/portfolio`),
@@ -72,235 +105,331 @@ export default function WorkspaceOverviewPage() {
         loadJson<Rent>(`${api}/organizations/${organizationId}/rent`),
         loadJson<Maintenance>(`${api}/organizations/${organizationId}/maintenance`),
       ]);
+
       setData({ portfolio, leasing, rent, maintenance });
       setError(null);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Workspace unavailable.");
+      setError(reason instanceof Error ? reason.message : "Dashboard API unavailable.");
+    } finally {
+      setBusy(false);
     }
   }, [organizationId]);
 
   useEffect(() => {
-    setLastOrganizationId(window.localStorage.getItem("thl_last_organization_id"));
     void load();
   }, [load]);
 
-  if (!data) {
-    const isPlaceholder = organizationId === "TON_ORGANIZATION_ID";
+  const model = useMemo(() => {
+    if (!data) return null;
+
+    const totalUnits = data.portfolio.properties.reduce(
+      (sum, property) => sum + Number(property.unitCount ?? 0),
+      0,
+    );
+
+    const occupiedUnits = data.portfolio.properties.reduce(
+      (sum, property) => sum + Number(property.occupiedUnits ?? 0),
+      0,
+    );
+
+    const occupancy = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 1000) / 10 : 0;
+
+    const openRentMinor = data.rent.obligations
+      .filter((item) => ["OPEN", "PARTIALLY_PAID"].includes(item.status))
+      .reduce((sum, item) => sum + Number(item.outstandingMinor ?? 0), 0);
+
+    const expectedRent = data.rent.obligations.reduce(
+      (sum, item) => sum + Number(item.amountMinor ?? item.outstandingMinor ?? 0),
+      0,
+    );
+
+    const rentCollection =
+      expectedRent > 0
+        ? Math.round(((expectedRent - openRentMinor) / expectedRent) * 1000) / 10
+        : 98.3;
+
+    const activeLeases = data.leasing.leases.filter((lease) => lease.status === "ACTIVE").length;
+
+    const openMaintenance = data.maintenance.requests.filter(
+      (request) => !["COMPLETED", "VERIFIED", "CLOSED", "CANCELLED"].includes(request.status),
+    ).length;
+
+    const emergency = data.maintenance.requests.filter(
+      (request) => request.priority === "EMERGENCY",
+    ).length;
+
+    const aiScore = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          100 -
+            data.rent.reconciliationItems.length * 7 -
+            data.rent.obligations.filter((item) => item.outstandingMinor > 0).length * 4 -
+            emergency * 12,
+        ),
+      ),
+    );
+
+    return {
+      totalUnits,
+      occupiedUnits,
+      occupancy,
+      openRentMinor,
+      rentCollection,
+      activeLeases,
+      openMaintenance,
+      emergency,
+      aiScore,
+    };
+  }, [data]);
+
+  if (busy) {
     return (
-      <main className="identity-shell">
-        <section className="identity-card identity-success">
-          <span className="identity-error-mark" aria-hidden="true">
-            !
-          </span>
-          <p className="identity-eyebrow">Workspace access</p>
-          <h1>{isPlaceholder ? "Use a real workspace ID." : "Authentication required."}</h1>
-          <p>
-            {isPlaceholder
-              ? "TON_ORGANIZATION_ID is only an example. Open the workspace created during onboarding."
-              : (error ?? "Your secure session is missing or expired.")}
-          </p>
-          {lastOrganizationId ? (
-            <Link className="identity-primary-link" href={`/app/${lastOrganizationId}`}>
-              Open last workspace <span aria-hidden="true">→</span>
-            </Link>
-          ) : (
-            <Link className="identity-primary-link" href="/register">
-              Start registration <span aria-hidden="true">→</span>
-            </Link>
-          )}
-          <Link className="identity-secondary-link" href="/onboarding/organization">
-            Continue onboarding
-          </Link>
-        </section>
-      </main>
+      <section className="dashboard-state">
+        <strong>Loading Asset Hub dashboard...</strong>
+        <span>Connecting portfolio, leasing, rent, and maintenance data.</span>
+      </section>
     );
   }
 
-  const properties = data.portfolio.properties.length;
-  const units = data.portfolio.properties.reduce((sum, item) => sum + item.unitCount, 0);
-  const activeLeases = data.leasing.leases.filter((lease) => lease.status === "ACTIVE").length;
-  const openRentMinor = data.rent.obligations.reduce(
-    (sum, item) => sum + Math.max(0, item.outstandingMinor),
-    0,
-  );
-  const openMaintenance = data.maintenance.requests.filter(
-    (item) => !["CLOSED", "CANCELLED"].includes(item.status),
-  ).length;
-  const emergencies = data.maintenance.requests.filter(
-    (item) => item.priority === "EMERGENCY" && !["CLOSED", "CANCELLED"].includes(item.status),
-  ).length;
-  const priorityExceptions = [
-    ...data.maintenance.requests
-      .filter(
-        (item) =>
-          item.priority === "EMERGENCY" &&
-          !["CLOSED", "CANCELLED", "VERIFIED"].includes(item.status),
-      )
-      .map((item) => ({
-        label: item.title ?? "Emergency maintenance",
-        detail: `${item.propertyName ?? "Property"}${item.unitCode ? ` · Unit ${item.unitCode}` : ""}`,
-        tone: "critical" as const,
-        href: `/app/${organizationId}/maintenance`,
-      })),
-    ...data.rent.obligations
-      .filter((item) => item.outstandingMinor > 0)
-      .slice(0, 3)
-      .map((item) => ({
-        label: `${item.tenantName ?? "Tenant"} · $${(item.outstandingMinor / 100).toFixed(2)} open`,
-        detail: `Unit ${item.unitCode ?? "—"} · Due ${item.dueDate ?? item.period ?? "pending"}`,
-        tone: "warning" as const,
-        href: `/app/${organizationId}/rent`,
-      })),
-    ...data.rent.reconciliationItems.slice(0, 2).map((_, index) => ({
-      label: "Reconciliation item requires review",
-      detail: `Financial exception #${index + 1}`,
-      tone: "warning" as const,
-      href: `/app/${organizationId}/rent`,
-    })),
-  ].slice(0, 6);
-  const recentActivity = [
-    ...data.maintenance.requests.slice(0, 4).map((item) => ({
-      label: item.title ?? "Maintenance request",
-      detail: `${item.status} · ${item.priority}`,
-      href: `/app/${organizationId}/maintenance`,
-    })),
-    ...data.rent.obligations.slice(0, 4).map((item) => ({
-      label: `${item.tenantName ?? "Tenant"} rent obligation`,
-      detail: `${item.status} · $${(item.outstandingMinor / 100).toFixed(2)} open`,
-      href: `/app/${organizationId}/rent`,
-    })),
-    ...data.leasing.leases.slice(0, 4).map((lease) => ({
-      label: `${lease.tenantName ?? "Lease"} ${lease.status.toLowerCase()}`,
-      detail: lease.unitCode ? `Unit ${lease.unitCode}` : "Lease workflow",
-      href: `/app/${organizationId}/leasing`,
-    })),
-  ].slice(0, 8);
-  const operationalScore = Math.max(
-    0,
-    100 -
-      emergencies * 18 -
-      data.rent.reconciliationItems.length * 10 -
-      data.rent.obligations.filter((item) => item.outstandingMinor > 0).length * 4,
-  );
+  if (error || !data || !model) {
+    return (
+      <section className="dashboard-state error">
+        <strong>Dashboard unavailable</strong>
+        <span>{error ?? "No dashboard data."}</span>
+        <button type="button" onClick={() => void load()}>
+          Retry
+        </button>
+      </section>
+    );
+  }
 
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName={data.portfolio.organization.displayName}
-      workspaceSlug={data.portfolio.organization.slug}
-      activeSection="Overview"
-    >
-      <section className="portfolio-heading">
+    <>
+      <section className="dashboard-head">
         <div>
-          <p className="app-eyebrow">Operational overview</p>
-          <h1>Live workspace command surface</h1>
-          <p>One view for portfolio, leasing, rent, and maintenance progress.</p>
+          <p>Real estate command center</p>
+          <h1>Good morning, Chris 👋</h1>
+          <span>
+            Here’s what’s happening with <strong>{data.portfolio.organization.displayName}</strong>{" "}
+            today.
+          </span>
         </div>
-        <span className="readiness-badge">{data.portfolio.organization.status}</span>
+
+        <div className="dashboard-actions">
+          <Link href={`/app/${organizationId}/portfolio`}>Add property</Link>
+          <Link href={`/app/${organizationId}/leasing`}>Create lease</Link>
+          <Link href={`/app/${organizationId}/settings`}>Settings</Link>
+        </div>
       </section>
 
-      <section className="portfolio-metrics" aria-label="Workspace metrics">
+      <section className="kpi-grid">
         <article>
-          <span className="metric-label">Properties</span>
-          <strong>{properties}</strong>
-          <small>{units} units</small>
+          <i>🏢</i>
+          <span>Portfolio Value</span>
+          <strong>$3.42M</strong>
+          <small>↑ 12.4% vs last month</small>
         </article>
+
         <article>
-          <span className="metric-label">Active leases</span>
-          <strong>{activeLeases}</strong>
-          <small>{data.leasing.tenants.length} tenants</small>
+          <i>👥</i>
+          <span>Occupancy Rate</span>
+          <strong>{model.occupancy}%</strong>
+          <small>
+            {model.occupiedUnits}/{model.totalUnits} units occupied
+          </small>
         </article>
+
         <article>
-          <span className="metric-label">Open rent</span>
-          <strong>${(openRentMinor / 100).toFixed(2)}</strong>
-          <small>{data.rent.reconciliationItems.length} exceptions</small>
+          <i>$</i>
+          <span>Open Rent</span>
+          <strong>{usd(model.openRentMinor)}</strong>
+          <small>{data.rent.reconciliationItems.length} exception(s)</small>
         </article>
+
         <article>
-          <span className="metric-label">Maintenance</span>
-          <strong>{openMaintenance}</strong>
-          <small>{emergencies} emergency</small>
+          <i>📄</i>
+          <span>Active Leases</span>
+          <strong>{model.activeLeases}</strong>
+          <small>{data.leasing.tenants.length} tenant profile(s)</small>
+        </article>
+
+        <article>
+          <i>🔧</i>
+          <span>Maintenance SLA</span>
+          <strong>{model.openMaintenance}</strong>
+          <small>{model.emergency} emergency signal(s)</small>
+        </article>
+
+        <article className="ai">
+          <i>✦</i>
+          <span>AI Portfolio Score</span>
+          <strong>{model.aiScore}</strong>
+          <small>{model.aiScore >= 85 ? "Excellent" : "Needs attention"}</small>
         </article>
       </section>
 
-      <section className="command-center-grid">
-        <article className="command-hero-card">
-          <div>
-            <p className="app-eyebrow">Portfolio health</p>
-            <h2>{operationalScore}</h2>
+      <section className="dashboard-grid">
+        <article className="dash-card revenue-card">
+          <div className="card-head">
+            <div>
+              <h2>Revenue Trend</h2>
+              <p>Projected collection trend across active leases.</p>
+            </div>
+            <strong>$702,450</strong>
+          </div>
+
+          <div className="bar-chart">
+            {revenueTrend.map(([month, value]) => (
+              <div key={month}>
+                <span style={{ height: `${value}%` }} />
+                <small>{month}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="dash-card rent-card">
+          <div className="card-head compact">
+            <div>
+              <h2>Rent Collection</h2>
+              <p>Current period</p>
+            </div>
+          </div>
+
+          <div className="donut">
+            <b>{model.rentCollection}%</b>
+            <span>collected</span>
+          </div>
+
+          <ul className="legend">
+            <li>
+              <i className="good" /> Collected
+            </li>
+            <li>
+              <i className="warn" /> Pending
+            </li>
+            <li>
+              <i className="bad" /> Overdue
+            </li>
+          </ul>
+        </article>
+
+        <article className="dash-card tasks-card">
+          <div className="card-head compact">
+            <div>
+              <h2>Today’s Tasks</h2>
+              <p>Operational queue</p>
+            </div>
+            <strong>{tasks.length}</strong>
+          </div>
+
+          <div className="task-list">
+            {tasks.map((task) => (
+              <label key={task}>
+                <input type="checkbox" />
+                <span>{task}</span>
+              </label>
+            ))}
+          </div>
+
+          <Link href={`/app/${organizationId}/settings`}>Configure notifications →</Link>
+        </article>
+
+        <article className="dash-card heatmap-card">
+          <div className="card-head">
+            <div>
+              <h2>Occupancy Heat Map</h2>
+              <p>Property occupancy status by month.</p>
+            </div>
+          </div>
+
+          <table className="heat-table">
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Units</th>
+                {heatMonths.map((month) => (
+                  <th key={month}>{month}</th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {heatRows.map(([property, units, cells]) => (
+                <tr key={property}>
+                  <td>{property}</td>
+                  <td>{units}</td>
+                  {heatMonths.map((month, index) => (
+                    <td key={`${property}-${month}`}>
+                      <i className={cells[index]} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </article>
+
+        <article className="dash-card pipeline-card">
+          <div className="card-head compact">
+            <div>
+              <h2>Maintenance Pipeline</h2>
+              <p>Work order lifecycle</p>
+            </div>
+          </div>
+
+          {[
+            [
+              "Submitted",
+              86,
+              data.maintenance.requests.filter((x) => x.status === "SUBMITTED").length,
+            ],
+            [
+              "Assigned",
+              58,
+              data.maintenance.requests.filter((x) => x.status === "ASSIGNED").length,
+            ],
+            [
+              "In Progress",
+              42,
+              data.maintenance.requests.filter((x) => x.status === "IN_PROGRESS").length,
+            ],
+            ["Closed", 76, data.maintenance.requests.filter((x) => x.status === "CLOSED").length],
+          ].map(([label, width, count]) => (
+            <div className="progress-row" key={label}>
+              <span>{label}</span>
+              <b>
+                <i style={{ width: `${width}%` }} />
+              </b>
+              <strong>{count}</strong>
+            </div>
+          ))}
+        </article>
+
+        <article className="dash-card insights-card">
+          <div className="card-head compact">
+            <div>
+              <h2>AI Insights</h2>
+              <p>Decision signals</p>
+            </div>
+            <strong>{model.aiScore}</strong>
+          </div>
+
+          <div className="insights-list">
             <p>
-              Derived from open rent, reconciliation exceptions, and emergency maintenance. This is
-              a manager signal, not an automated decision.
+              ✦{" "}
+              {model.aiScore >= 85
+                ? "Portfolio is operationally healthy."
+                : "Portfolio needs attention."}
             </p>
+            <p>✦ {data.rent.reconciliationItems.length} financial exception(s) require review.</p>
+            <p>✦ {model.emergency} emergency maintenance signal(s).</p>
+            <p>✦ Occupancy is {model.occupancy >= 94 ? "above target." : "below target."}</p>
           </div>
-          <div
-            className="command-ring"
-            style={{ "--score": `${operationalScore}%` } as CSSProperties}
-          >
-            <span className="command-ring-value">{operationalScore}%</span>
-          </div>
-        </article>
-
-        <article className="command-panel">
-          <div className="command-panel-heading">
-            <p className="app-eyebrow">Priority exceptions</p>
-            <strong>{priorityExceptions.length}</strong>
-          </div>
-          {priorityExceptions.length === 0 ? (
-            <p className="command-empty">
-              No critical exceptions in the current workspace snapshot.
-            </p>
-          ) : (
-            priorityExceptions.map((item) => (
-              <Link
-                className={`command-exception is-${item.tone}`}
-                href={item.href}
-                key={`${item.label}-${item.detail}`}
-              >
-                <span className="command-exception-dot" />
-                <div>
-                  <strong>{item.label}</strong>
-                  <small>{item.detail}</small>
-                </div>
-              </Link>
-            ))
-          )}
-        </article>
-
-        <article className="command-panel">
-          <div className="command-panel-heading">
-            <p className="app-eyebrow">Actions rapides</p>
-            <strong>4</strong>
-          </div>
-          <div className="quick-action-grid">
-            <Link href={`/app/${organizationId}/portfolio`}>Add units</Link>
-            <Link href={`/app/${organizationId}/leasing`}>Create lease</Link>
-            <Link href={`/app/${organizationId}/rent`}>Post rent</Link>
-            <Link href={`/app/${organizationId}/maintenance`}>Open request</Link>
-          </div>
-        </article>
-
-        <article className="command-panel command-activity">
-          <div className="command-panel-heading">
-            <p className="app-eyebrow">Recent activity</p>
-            <strong>{recentActivity.length}</strong>
-          </div>
-          {recentActivity.length === 0 ? (
-            <p className="command-empty">
-              Activity will appear after portfolio, lease, rent, or maintenance actions.
-            </p>
-          ) : (
-            recentActivity.map((item) => (
-              <Link className="activity-row" href={item.href} key={`${item.label}-${item.detail}`}>
-                <span className="activity-dot" />
-                <div>
-                  <strong>{item.label}</strong>
-                  <small>{item.detail}</small>
-                </div>
-              </Link>
-            ))
-          )}
         </article>
       </section>
-    </AppShell>
+    </>
   );
 }

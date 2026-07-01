@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppShell } from "../../../../components/app-shell";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -135,11 +134,7 @@ export default function ReadinessReviewPage() {
   }
 
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName="Workspace review"
-      workspaceSlug={null}
-    >
+    <>
       <section className="review-heading">
         <div>
           <p className="app-eyebrow">Final onboarding checkpoint</p>
@@ -204,6 +199,6 @@ export default function ReadinessReviewPage() {
           </p>
         ) : null}
       </section>
-    </AppShell>
+    </>
   );
 }

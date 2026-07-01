@@ -8,12 +8,17 @@ import { RegisterUserService } from "./register-user.service.js";
 const command = {
   fullName: "  Chris   Morgan  ",
   email: "OWNER@EXAMPLE.COM ",
-  password: "a-secure-password",
   acceptedTermsVersion: "2026-06-20",
   correlationId: "correlation-registration",
 };
 
-function setup(pendingVerification: { userId: string; email: string } | null) {
+function setup(
+  pendingVerification: {
+    userId: string;
+    email: string;
+    shouldSendVerification: boolean;
+  } | null,
+) {
   const passwordHasher = { hash: vi.fn().mockResolvedValue("argon2-hash") };
   const tokens = {
     generate: vi.fn().mockReturnValue("verification-token"),
@@ -35,9 +40,10 @@ function setup(pendingVerification: { userId: string; email: string } | null) {
 
 describe("RegisterUserService", () => {
   it("normalizes identity data and sends a verification without exposing account details", async () => {
-    const { service, repository, mailer } = setup({
+    const { service, passwordHasher, repository, mailer } = setup({
       userId: "user-id",
       email: "owner@example.com",
+      shouldSendVerification: true,
     });
 
     await expect(service.execute(command)).resolves.toEqual({
@@ -51,8 +57,10 @@ describe("RegisterUserService", () => {
         passwordHash: "argon2-hash",
       }),
     );
+    expect(passwordHasher.hash).toHaveBeenCalledWith(expect.stringMatching(/^AH-/));
     expect(mailer.sendVerification).toHaveBeenCalledWith({
       email: "owner@example.com",
+      temporaryPassword: expect.stringMatching(/^AH-/),
       token: "verification-token",
     });
   });
@@ -65,6 +73,20 @@ describe("RegisterUserService", () => {
       nextAction: "CHECK_EMAIL",
     });
     expect(passwordHasher.hash).toHaveBeenCalledOnce();
+    expect(mailer.sendVerification).not.toHaveBeenCalled();
+  });
+
+  it("does not resend credentials for an existing pending registration", async () => {
+    const { service, mailer } = setup({
+      userId: "user-id",
+      email: "owner@example.com",
+      shouldSendVerification: false,
+    });
+
+    await expect(service.execute(command)).resolves.toEqual({
+      status: "ACCEPTED",
+      nextAction: "CHECK_EMAIL",
+    });
     expect(mailer.sendVerification).not.toHaveBeenCalled();
   });
 

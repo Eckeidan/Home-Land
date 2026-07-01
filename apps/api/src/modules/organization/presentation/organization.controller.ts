@@ -3,6 +3,8 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -25,6 +27,7 @@ import type { AuthenticatedRequest } from "../../../infrastructure/session/sessi
 import { ConfigureWorkspaceService } from "../application/configure-workspace.service.js";
 import { CreateInvitationService } from "../application/create-invitation.service.js";
 import { CreateOrganizationService } from "../application/create-organization.service.js";
+import { OrganizationRepository } from "../infrastructure/organization.repository.js";
 // biome-ignore lint/style/useImportType: NestJS validation requires DTO runtime metadata.
 import {
   ConfigureWorkspaceDto,
@@ -41,7 +44,33 @@ export class OrganizationController {
     private readonly configureWorkspace: ConfigureWorkspaceService,
     @Inject(CreateInvitationService)
     private readonly createInvitation: CreateInvitationService,
+    @Inject(OrganizationRepository)
+    private readonly organizationRepository: OrganizationRepository,
   ) {}
+
+  @Get(":organizationId/workspace-context")
+  @UseGuards(SessionGuard)
+  async workspaceContext(
+    @Param("organizationId", new ParseUUIDPipe({ version: "4" })) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    if (!request.identity) throw new UnauthorizedException();
+
+    const context = await this.organizationRepository.getWorkspaceContext(
+      organizationId,
+      request.identity.userId,
+    );
+    if (!context) {
+      throw new ForbiddenException({
+        type: "/problems/access-denied",
+        title: "Workspace access denied",
+        status: 403,
+        code: "WORKSPACE_ACCESS_DENIED",
+      });
+    }
+
+    return context;
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AppShell } from "../../../../components/app-shell";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -159,11 +158,7 @@ export default function PortfolioPage() {
   );
 
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName={snapshot.organization.displayName}
-      workspaceSlug={snapshot.organization.slug}
-    >
+    <>
       <section className="portfolio-heading">
         <div>
           <p className="app-eyebrow">Portfolio system of record</p>
@@ -352,6 +347,6 @@ export default function PortfolioPage() {
           </article>
         </section>
       )}
-    </AppShell>
+    </>
   );
 }

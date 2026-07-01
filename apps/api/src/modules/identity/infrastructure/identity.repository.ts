@@ -15,6 +15,7 @@ interface PersistRegistrationInput {
 interface PendingVerification {
   userId: string;
   email: string;
+  shouldSendVerification: boolean;
 }
 
 interface VerifyEmailInput {
@@ -53,19 +54,11 @@ export class IdentityRepository {
       }
 
       if (existingUser) {
-        await transaction.emailVerificationChallenge.updateMany({
-          where: { userId: existingUser.id, consumedAt: null, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        await transaction.emailVerificationChallenge.create({
-          data: {
-            userId: existingUser.id,
-            tokenHash: input.tokenHash,
-            expiresAt: input.expiresAt,
-          },
-        });
-        await this.recordRegistrationRequested(transaction, existingUser.id, input, true);
-        return { userId: existingUser.id, email: existingUser.email };
+        return {
+          userId: existingUser.id,
+          email: existingUser.email,
+          shouldSendVerification: false,
+        };
       }
 
       const user = await transaction.user.create({
@@ -87,7 +80,7 @@ export class IdentityRepository {
       });
       await this.recordRegistrationRequested(transaction, user.id, input, false);
 
-      return { userId: user.id, email: user.email };
+      return { userId: user.id, email: user.email, shouldSendVerification: true };
     });
   }
 

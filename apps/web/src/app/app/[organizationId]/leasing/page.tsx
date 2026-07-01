@@ -1,7 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AppShell } from "../../../../components/app-shell";
 
 const api = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 type Snapshot = {
@@ -162,12 +161,7 @@ export default function LeasingPage() {
   }
   if (!data) return <div className="app-loading">{error ?? "Loading leasing workspace…"}</div>;
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName={data.organization.displayName}
-      workspaceSlug={data.organization.slug}
-      activeSection="Leasing"
-    >
+    <>
       <section className="portfolio-heading">
         <div>
           <p className="app-eyebrow">Leasing system</p>
@@ -346,6 +340,6 @@ export default function LeasingPage() {
           </button>
         </div>
       ) : null}
-    </AppShell>
+    </>
   );
 }

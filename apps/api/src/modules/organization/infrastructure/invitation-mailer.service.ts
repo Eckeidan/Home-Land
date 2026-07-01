@@ -4,11 +4,19 @@ import type { InvitationalRole } from "../domain/organization.types.js";
 
 @Injectable()
 export class InvitationMailerService {
-  private readonly transporter: Transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? "localhost",
-    port: Number.parseInt(process.env.SMTP_PORT ?? "1025", 10),
-    secure: false,
-  });
+  private readonly transporter: Transporter;
+
+  constructor() {
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASSWORD;
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST ?? "localhost",
+      port: Number.parseInt(process.env.SMTP_PORT ?? "1025", 10),
+      secure: process.env.SMTP_SECURE === "true",
+      requireTLS: process.env.SMTP_REQUIRE_TLS === "true",
+      ...(user && pass ? { auth: { user, pass } } : {}),
+    });
+  }
 
   async send(input: {
     email: string;
@@ -25,7 +33,7 @@ export class InvitationMailerService {
     await this.transporter.sendMail({
       from: process.env.EMAIL_FROM ?? "The Home Land <notifications@thehomeland.local>",
       to: input.email,
-      subject: `Join ${input.organizationName} on The Home Land`,
+      subject: `Join ${input.organizationName} on Asset Hub`,
       text: `You were invited to join ${input.organizationName} as ${input.role}. Accept: ${url.toString()}\n\nThis single-use invitation expires in 72 hours.`,
       html: `<p>You were invited to join <strong>${organizationName}</strong> as ${input.role}.</p><p><a href="${url.toString()}">Accept invitation</a></p><p>This single-use invitation expires in 72 hours.</p>`,
     });

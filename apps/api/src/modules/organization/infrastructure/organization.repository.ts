@@ -41,6 +41,22 @@ export type WorkspaceConfigurationResult =
   | { kind: "transition_invalid"; currentState: string }
   | { kind: "slug_unavailable" };
 
+export interface WorkspaceContext {
+  organization: {
+    id: string;
+    displayName: string;
+    slug: string | null;
+    status: string;
+  };
+  membership: {
+    role: string;
+  };
+  user: {
+    email: string;
+    fullName: string | null;
+  };
+}
+
 class WorkspaceTransitionRaceError extends Error {
   constructor(readonly currentState: string) {
     super("Workspace onboarding state changed during configuration");
@@ -282,6 +298,44 @@ export class OrganizationRepository {
       if (this.isUniqueConstraintConflict(error)) return { kind: "slug_unavailable" };
       throw error;
     }
+  }
+
+  async getWorkspaceContext(
+    organizationId: string,
+    actorUserId: string,
+  ): Promise<WorkspaceContext | null> {
+    const membership = await this.database.membership.findFirst({
+      where: {
+        organizationId,
+        userId: actorUserId,
+        status: "ACTIVE",
+      },
+      select: {
+        role: true,
+        organization: {
+          select: {
+            id: true,
+            displayName: true,
+            slug: true,
+            status: true,
+          },
+        },
+        user: {
+          select: {
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) return null;
+
+    return {
+      organization: membership.organization,
+      membership: { role: membership.role },
+      user: membership.user,
+    };
   }
 
   private hashesEqual(left: Uint8Array, right: Uint8Array): boolean {

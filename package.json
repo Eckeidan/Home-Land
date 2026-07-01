@@ -14,10 +14,12 @@
     "packages/*"
   ],
   "scripts": {
+    "db:seed:demo": "npm run seed:demo -w @home-land/database",
     "build": "npm run db:generate && npm run build -w @home-land/database && npm run build -w @home-land/contracts && npm run build -w @home-land/api && npm run build -w @home-land/web",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "db:generate": "npm run generate -w @home-land/database",
     "db:migrate": "npm run migrate:dev -w @home-land/database",
+    "db:migrate:deploy": "npm run migrate:deploy -w @home-land/database",
     "db:studio": "npm run studio -w @home-land/database",
     "dev": "concurrently --kill-others-on-fail --names web,api --prefix-colors green,cyan \"npm run dev -w @home-land/web\" \"npm run dev -w @home-land/api\"",
     "format": "biome check --write .",

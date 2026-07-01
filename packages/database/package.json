@@ -13,6 +13,8 @@
     "build": "tsc -p tsconfig.build.json",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed:demo": "node --env-file=../../.env --loader ts-node/esm src/seed-demo.ts",
     "studio": "prisma studio",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"

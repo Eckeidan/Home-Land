@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AppShell } from "../../../../../components/app-shell";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
 
@@ -214,11 +213,7 @@ export default function PropertyWorkspacePage() {
   }
 
   return (
-    <AppShell
-      organizationId={organizationId}
-      organizationName={workspace.organization.displayName}
-      workspaceSlug={workspace.organization.slug}
-    >
+    <>
       <Link className="property-back-link" href={`/app/${organizationId}/portfolio`}>
         ← Portfolio
       </Link>
@@ -355,6 +350,6 @@ export default function PropertyWorkspacePage() {
           </p>
         ) : null}
       </section>
-    </AppShell>
+    </>
   );
 }
