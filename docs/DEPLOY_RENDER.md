@@ -37,8 +37,11 @@ DATABASE_URL=<existing-render-postgres-internal-url>
 
 If Render changes the service URLs, update:
 
-- API `WEB_ORIGIN`
-- API `APP_PUBLIC_URL`
-- Web `NEXT_PUBLIC_API_BASE_URL`
+- API `WEB_ORIGIN`: `https://asset-hub-web.onrender.com`
+- API `APP_PUBLIC_URL`: `https://asset-hub-web.onrender.com`
+- Web `NEXT_PUBLIC_API_BASE_URL`: `https://assethub-api.onrender.com/api/v1`
 
 Email verification links use `APP_PUBLIC_URL`, so this value must be the public web URL.
+
+The public web URL currently contains a dash: `asset-hub-web`. The API URL does
+not: `assethub-api`.
