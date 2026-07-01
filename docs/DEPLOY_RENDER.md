@@ -4,7 +4,7 @@
 
 - `asset-hub-web`: Next.js website/application
 - `asset-hub-api`: NestJS API
-- `asset-hub-postgres`: PostgreSQL database
+- Existing Render PostgreSQL database, for example `AssetHub-db`
 
 ## Required Render environment values
 
@@ -26,6 +26,12 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<stripe-publishable-or-placeholder>
 ```
 
 Render provides `DATABASE_URL` automatically from `asset-hub-postgres`.
+For free Render accounts, only one active free database is allowed. If a database
+already exists, copy its internal connection string into the API service as:
+
+```env
+DATABASE_URL=<existing-render-postgres-internal-url>
+```
 
 ## Important URLs
 
