@@ -5,7 +5,7 @@ import {
   Injectable,
   SetMetadata,
 } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import type { AuthenticatedRequest } from "./session.types.js";
 
 export const REQUIRED_ROLES_KEY = "required_roles";
