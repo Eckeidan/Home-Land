@@ -39,7 +39,7 @@ async function main() {
   const leaseStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const leaseEnd = new Date(Date.UTC(now.getUTCFullYear() + 1, now.getUTCMonth(), 0));
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Parameters<Parameters<typeof db.$transaction>[0]>[0]) => {
     const user = await tx.user.create({
       data: {
         email,
