@@ -55,6 +55,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_BASE_URL
-        value: https://asset-hub-api.onrender.com/api/v1
+        value: https://assethub-api.onrender.com/api/v1
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         sync: false

@@ -76,18 +76,22 @@ describe("RegisterUserService", () => {
     expect(mailer.sendVerification).not.toHaveBeenCalled();
   });
 
-  it("does not resend credentials for an existing pending registration", async () => {
+  it("resends refreshed credentials for an existing pending registration", async () => {
     const { service, mailer } = setup({
       userId: "user-id",
       email: "owner@example.com",
-      shouldSendVerification: false,
+      shouldSendVerification: true,
     });
 
     await expect(service.execute(command)).resolves.toEqual({
       status: "ACCEPTED",
       nextAction: "CHECK_EMAIL",
     });
-    expect(mailer.sendVerification).not.toHaveBeenCalled();
+    expect(mailer.sendVerification).toHaveBeenCalledWith({
+      email: "owner@example.com",
+      temporaryPassword: expect.stringMatching(/^AH-/),
+      token: "verification-token",
+    });
   });
 
   it("returns the generic response when concurrent registration loses the unique race", async () => {

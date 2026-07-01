@@ -54,10 +54,27 @@ export class IdentityRepository {
       }
 
       if (existingUser) {
+        await transaction.passwordCredential.upsert({
+          where: { userId: existingUser.id },
+          create: { userId: existingUser.id, passwordHash: input.passwordHash },
+          update: { passwordHash: input.passwordHash },
+        });
+        await transaction.emailVerificationChallenge.updateMany({
+          where: { userId: existingUser.id, consumedAt: null, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        await transaction.emailVerificationChallenge.create({
+          data: {
+            userId: existingUser.id,
+            tokenHash: input.tokenHash,
+            expiresAt: input.expiresAt,
+          },
+        });
+        await this.recordRegistrationRequested(transaction, existingUser.id, input, true);
         return {
           userId: existingUser.id,
           email: existingUser.email,
-          shouldSendVerification: false,
+          shouldSendVerification: true,
         };
       }
 

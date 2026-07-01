@@ -25,6 +25,12 @@ export default function RegisterPage() {
     }
   }, []);
 
+  function resetAcceptedRegistration() {
+    window.localStorage.removeItem(acceptedRegistrationKey);
+    setError(null);
+    setState("idle");
+  }
+
   async function submitRegistration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("submitting");
@@ -189,6 +195,13 @@ export default function RegisterPage() {
                   {isFrench ? "Connexion après vérification" : "Sign in after verification"}
                   <span aria-hidden="true">→</span>
                 </Link>
+                <button
+                  className="accepted-secondary-button"
+                  type="button"
+                  onClick={resetAcceptedRegistration}
+                >
+                  {isFrench ? "Renvoyer ou changer email" : "Resend or change email"}
+                </button>
               </div>
             </div>
           ) : (
@@ -729,6 +742,25 @@ export default function RegisterPage() {
           color: #ffffff !important;
           background: linear-gradient(135deg, #0b2454, #60a5fa);
           text-decoration: none;
+        }
+
+        .accepted-secondary-button {
+          width: 100%;
+          min-height: 46px;
+          border: 1px solid #bfdbfe;
+          border-radius: 12px;
+          color: #1d4ed8;
+          background: #eff6ff;
+          box-shadow: none;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .accepted-secondary-button:hover {
+          color: #071a3d;
+          background: #dbeafe;
         }
 
         @media (max-width: 980px) {
