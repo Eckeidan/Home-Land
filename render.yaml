@@ -49,7 +49,7 @@ services:
     name: asset-hub-web
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run db:generate && npm run build -w @home-land/database && npm run build -w @home-land/contracts && npm run build -w @home-land/web
+    buildCommand: npm ci && npm run build -w @home-land/contracts && npm run build -w @home-land/web
     startCommand: npm run start -w @home-land/web
     envVars:
       - key: NODE_ENV
